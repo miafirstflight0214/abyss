@@ -7,7 +7,7 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #080a0f;
+    background: #070a10;
     color: #c8c8c8;
     font-family: 'Courier New', monospace;
     min-height: 100vh;
@@ -17,60 +17,61 @@
     overflow-x: hidden;
   }
   #scene-wrap {
-    width: 100%;
-    max-width: 800px;
-    margin-top: 24px;
-    position: relative;
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid rgba(100,180,255,0.08);
-    box-shadow: 0 0 80px rgba(20,60,120,0.12);
+    width: 100%; max-width: 840px; margin-top: 24px;
+    position: relative; border-radius: 6px; overflow: hidden;
+    border: 1px solid rgba(80,140,200,0.06);
+    box-shadow: 0 0 100px rgba(15,40,80,0.2), inset 0 0 60px rgba(0,0,0,0.3);
+  }
+  /* CRT-like subtle overlay */
+  #scene-wrap::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background: repeating-linear-gradient(to bottom, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 6px);
   }
   canvas { display: block; width: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
 
   #cards {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
-    width: 100%; max-width: 800px; margin: 20px auto 40px; padding: 0 12px;
+    width: 100%; max-width: 840px; margin: 16px auto 32px; padding: 0 12px;
   }
   .card {
-    background: #0c0f16; border-radius: 4px; padding: 16px;
-    border: 1px solid rgba(100,180,255,0.08); transition: border-color 0.3s;
+    background: #0b0e16; border-radius: 4px; padding: 14px 16px;
+    border: 1px solid rgba(80,140,200,0.06); transition: border-color 0.4s;
   }
-  .card:hover { border-color: rgba(100,180,255,0.2); }
-  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .card-dot { width: 6px; height: 6px; border-radius: 50%; }
-  .card-dot.active { animation: pulse-dot 2s ease-in-out infinite; }
-  @keyframes pulse-dot { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
-  .card-name { font-size: 13px; font-weight: bold; }
-  .card-name.mia { color: #b48edd; }
-  .card-name.nemo { color: #ff9654; }
-  .card-name.nova { color: #4eb8ff; }
-  .card-role { font-size: 10px; color: #444; margin-bottom: 8px; letter-spacing: 0.05em; }
-  .card-status { font-size: 11px; color: #555; margin-bottom: 3px; }
-  .card-task { font-size: 11px; color: #444; }
-  #title { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(100,180,255,0.25); margin-top: 24px; }
-  #footer { font-size: 9px; letter-spacing: 0.15em; color: rgba(100,180,255,0.15); margin-bottom: 24px; }
+  .card:hover { border-color: rgba(80,140,200,0.15); }
+  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .card-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .card-dot.active { animation: pulse-dot 2.5s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+  .card-name { font-size: 12px; font-weight: bold; }
+  .card-name.mia { color: #c4a0ee; }
+  .card-name.nemo { color: #ffab70; }
+  .card-name.nova { color: #60c4ff; }
+  .card-role { font-size: 9px; color: #3a3a44; margin-bottom: 6px; letter-spacing: 0.06em; }
+  .card-status { font-size: 10px; color: #4a4a55; }
+  .card-task { font-size: 10px; color: #353540; margin-top: 2px; }
+  #title { font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(80,140,200,0.2); margin-top: 20px; }
+  #footer { font-size: 8px; letter-spacing: 0.2em; color: rgba(80,140,200,0.1); margin-bottom: 20px; }
   @media (max-width: 600px) { #cards { grid-template-columns: 1fr; padding: 0 16px; } }
 </style>
 </head>
 <body>
 <div id="title">Abyss</div>
-<div id="scene-wrap"><canvas id="scene" width="400" height="280"></canvas></div>
+<div id="scene-wrap"><canvas id="scene" width="560" height="320"></canvas></div>
 <div id="cards">
   <div class="card">
-    <div class="card-head"><span class="card-dot active" style="background:#b48edd"></span><span class="card-name mia">Mia</span></div>
+    <div class="card-head"><span class="card-dot active" style="background:#c4a0ee"></span><span class="card-name mia">Mia</span></div>
     <div class="card-role">主脑 · main agent</div>
     <div class="card-status">&gt; working</div>
     <div class="card-task">_ 汇总信息，协调一切</div>
   </div>
   <div class="card">
-    <div class="card-head"><span class="card-dot active" style="background:#ff9654"></span><span class="card-name nemo">Nemo</span></div>
+    <div class="card-head"><span class="card-dot active" style="background:#ffab70"></span><span class="card-name nemo">Nemo</span></div>
     <div class="card-role">生活助手 · life agent</div>
     <div class="card-status">&gt; idle</div>
     <div class="card-task">_ 日常陪伴，闲聊游荡</div>
   </div>
   <div class="card">
-    <div class="card-head"><span class="card-dot active" style="background:#4eb8ff"></span><span class="card-name nova">Nova</span></div>
+    <div class="card-head"><span class="card-dot active" style="background:#60c4ff"></span><span class="card-name nova">Nova</span></div>
     <div class="card-role">代码搭档 · code agent</div>
     <div class="card-status">&gt; working</div>
     <div class="card-task">_ 精准捕猎，解决问题</div>
@@ -79,451 +80,512 @@
 <div id="footer">THREE AGENTS · ONE ABYSS</div>
 
 <script>
-const canvas = document.getElementById('scene');
-const ctx = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
-const PX = 3; // pixel size
+const C = document.getElementById('scene');
+const X = C.getContext('2d');
+const W = C.width, H = C.height;
+const P = 2; // pixel unit
 
-const MIA_CLR = '#b48edd', MIA_CLR2 = '#9070bb';
-const NEMO_CLR = '#ff9654';
-const NOVA_CLR = '#4eb8ff';
+// ── Palette ──
+const PAL = {
+  mia:     '#c4a0ee', mia2: '#a080cc', mia3: '#8060aa', miaGlow: '#d4b0ff',
+  nemo:    '#ffab70', nemo2: '#ff8844', nemoW: '#fff8f0', nemoD: '#cc6630',
+  nova:    '#60c4ff', nova2: '#152540', nova3: '#1a3050', novaGlow: '#80d8ff',
+  seabed:  '#0c1020', seabed2: '#101428', rock: '#141830',
+  coral1:  '#2a1828', coral2: '#1a2830', coral3: '#281a28',
+  anemone: '#c06080', anemone2: '#e08090',
+  kelp:    '#1a3020', kelp2: '#203828',
+  sand:    '#1a1820',
+};
 
 // ── Agent states ──
 const agents = {
-  mia:  { state: 'working', task: 'Writing summary' },
-  nemo: { state: 'idle', task: '' },
-  nova: { state: 'working', task: 'Debugging' },
+  mia:  { state: 'working' },
+  nemo: { state: 'idle' },
+  nova: { state: 'working' },
 };
 
-// ── Workstations (fixed positions) ──
-// Three coral/rock desks on the seabed
-const stations = {
-  mia:  { x: 80,  deskY: H - 60 },
-  nova: { x: 300, deskY: H - 60 },
-  nemo: { x: 190, deskY: H - 55 }, // slightly different height — idle spot
-};
+// Workstation X positions
+const STX = { mia: 110, nemo: 280, nova: 440 };
+const FLOOR = H - 50;
 
 // ── Particles ──
-const particles = [];
-for (let i = 0; i < 50; i++) {
-  particles.push({
+const parts = [];
+for (let i = 0; i < 80; i++) {
+  parts.push({
     x: Math.random()*W, y: Math.random()*H,
-    r: Math.random()*1.2+0.3, speed: Math.random()*0.2+0.05,
-    alpha: Math.random()*0.25+0.03, drift: Math.random()*0.3-0.15,
-    color: ['#4080a0','#6090b0','#30a080','#8060c0'][Math.floor(Math.random()*4)],
+    s: Math.random()*1.2+0.5, spd: Math.random()*0.15+0.03,
+    a: Math.random()*0.15+0.02, dr: Math.random()*0.2-0.1,
+    c: ['#2a5070','#3a6080','#205048','#4a3870','#305060'][Math.floor(Math.random()*5)],
   });
 }
 
-// ── Bioluminescent plankton ──
-const plankton = [];
-for (let i = 0; i < 12; i++) {
-  plankton.push({
-    x: Math.random()*W, y: 30 + Math.random()*(H-80),
-    phase: Math.random()*Math.PI*2, period: 2+Math.random()*4,
-    color: ['#40e0d0','#80ffcc','#a0c0ff','#c090ff'][Math.floor(Math.random()*4)],
+// Bioluminescent dots
+const bios = [];
+for (let i = 0; i < 20; i++) {
+  bios.push({
+    x: Math.random()*W, y: 20+Math.random()*(H-90),
+    ph: Math.random()*6.28, pd: 1.5+Math.random()*5,
+    c: ['#30d0b0','#60eec0','#80b0ff','#b080e0','#50c0c0'][Math.floor(Math.random()*5)],
+    s: Math.random()*1.5+0.5,
   });
 }
 
-// ── Seaweed ──
-const seaweeds = [];
-for (let i = 0; i < 6; i++) {
-  seaweeds.push({
-    x: 15 + Math.random()*(W-30),
-    segments: 3 + Math.floor(Math.random()*4),
-    phase: Math.random()*Math.PI*2,
-    color: ['#1a3828','#1a2838','#2a3838'][Math.floor(Math.random()*3)],
-  });
-}
-
-// ── Speech bubbles ──
-const bubbleMessages = {
-  mia: ['Summarizing...', 'Coordinating.', 'Noted.', 'On it.', 'Checking logs.'],
-  nemo: ['~♪', 'zzZ', '...', '*yawn*', 'hmm?'],
-  nova: ['Fixed.', 'Deploying.', 'git push.', 'Done.', 'Debugging...'],
+// ── Speech ──
+const MSGS = {
+  mia:  ['Summarizing...','Coordinating.','Noted.','On it.','Checking logs.','Syncing.'],
+  nemo: ['~♪','zzZ','...','*yawn*','hmm?','nice day~'],
+  nova: ['Fixed.','Deploying.','git push.','Done.','Debugging...','Refactoring.'],
 };
-const bubbles = { mia: null, nemo: null, nova: null };
-let bubbleTimer = 0;
+const bubs = { mia:null, nemo:null, nova:null };
+let bubT = 0;
 
-function randomBubble(id) {
-  const msgs = bubbleMessages[id];
-  return { text: msgs[Math.floor(Math.random()*msgs.length)], life: 120 + Math.random()*60 };
+// ── Environment objects (pre-generated) ──
+// Background corals (decorative, far layer)
+const bgCorals = [];
+for (let i = 0; i < 12; i++) {
+  bgCorals.push({
+    x: Math.random()*W,
+    h: 15+Math.random()*30,
+    w: 4+Math.random()*8,
+    c: ['#0e1420','#101628','#0c1220','#12162a'][Math.floor(Math.random()*4)],
+    type: Math.floor(Math.random()*3),
+  });
 }
 
-// ── Draw helpers ──
-function drawPixelSprite(cx, cy, sprite, colorMap) {
-  const bw = sprite[0].length, bh = sprite.length;
-  for (let r = 0; r < bh; r++) {
-    for (let c = 0; c < bw; c++) {
-      const v = sprite[r][c];
-      if (!v) continue;
-      ctx.fillStyle = colorMap[v] || '#fff';
-      ctx.fillRect(cx - Math.floor(bw/2)*PX + c*PX, cy - Math.floor(bh/2)*PX + r*PX, PX, PX);
+// Foreground kelp
+const kelps = [];
+for (let i = 0; i < 10; i++) {
+  kelps.push({
+    x: Math.random()*W, segs: 5+Math.floor(Math.random()*6),
+    ph: Math.random()*6.28, thick: 2+Math.floor(Math.random()*2),
+    c: Math.random()>0.5 ? PAL.kelp : PAL.kelp2,
+  });
+}
+
+// ── Draw functions ──
+
+function drawBg(t) {
+  // Deep gradient
+  const g = X.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0a1228');
+  g.addColorStop(0.3,'#081020');
+  g.addColorStop(0.6,'#060c18');
+  g.addColorStop(1,'#040810');
+  X.fillStyle = g; X.fillRect(0,0,W,H);
+
+  // Subtle caustics / light shafts
+  for (let i = 0; i < 5; i++) {
+    const lx = 40 + i*120 + Math.sin(t*0.08+i*2)*15;
+    const la = 0.008 + Math.sin(t*0.15+i*1.2)*0.004;
+    X.globalAlpha = la;
+    X.fillStyle = '#3060a0';
+    X.beginPath();
+    X.moveTo(lx,0); X.lineTo(lx-40,H); X.lineTo(lx+30,H); X.lineTo(lx+8,0);
+    X.fill();
+  }
+  X.globalAlpha = 1;
+}
+
+function drawBgCorals() {
+  bgCorals.forEach(c => {
+    X.fillStyle = c.c;
+    if (c.type === 0) { // branching
+      X.fillRect(c.x, FLOOR+10-c.h, c.w, c.h);
+      X.fillRect(c.x-c.w, FLOOR+10-c.h*0.6, c.w, c.h*0.3);
+      X.fillRect(c.x+c.w, FLOOR+10-c.h*0.7, c.w, c.h*0.35);
+    } else if (c.type === 1) { // mound
+      for (let j = 0; j < c.h; j += P) {
+        const rw = c.w * (1 - j/c.h*0.6);
+        X.fillRect(c.x-rw/2, FLOOR+10-j, rw, P);
+      }
+    } else { // thin stalk
+      X.fillRect(c.x, FLOOR+10-c.h, P*2, c.h);
+      X.fillRect(c.x-P, FLOOR+10-c.h, P*4, P*2);
     }
+  });
+}
+
+function drawSeabed() {
+  // Sandy/rocky terrain
+  for (let x = 0; x < W; x += P) {
+    const h = 12 + Math.sin(x*0.03)*6 + Math.sin(x*0.08)*4 + Math.sin(x*0.17)*3;
+    X.fillStyle = PAL.seabed;
+    X.fillRect(x, H-h, P, h);
+    // Top edge lighter
+    X.fillStyle = PAL.seabed2;
+    X.fillRect(x, H-h, P, P);
   }
 }
 
-function drawBubble(x, y, text) {
-  ctx.font = '8px Courier New';
-  const w = ctx.measureText(text).width + 8;
-  const bx = x - w/2, by = y - 14;
-  ctx.globalAlpha = 0.85;
-  ctx.fillStyle = '#1a1e28';
-  ctx.fillRect(bx, by, w, 12);
-  ctx.strokeStyle = 'rgba(100,180,255,0.2)';
-  ctx.lineWidth = 0.5;
-  ctx.strokeRect(bx, by, w, 12);
-  // Arrow
-  ctx.fillStyle = '#1a1e28';
-  ctx.fillRect(x-2, by+12, 4, 3);
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = '#8899aa';
-  ctx.fillText(text, bx+4, by+9);
+function drawKelp(t) {
+  kelps.forEach(k => {
+    let sy = H - 15;
+    for (let i = 0; i < k.segs; i++) {
+      const sway = Math.sin(t*0.5 + k.ph + i*0.4) * (1 + i*0.5);
+      X.globalAlpha = 0.4 - i*0.025;
+      X.fillStyle = k.c;
+      X.fillRect(k.x + sway, sy - i*6, k.thick*P, 6);
+      // Leaf every 2 segments
+      if (i > 1 && i % 2 === 0) {
+        const leafDir = (i % 4 === 0) ? 1 : -1;
+        X.fillRect(k.x + sway + leafDir*k.thick*P, sy - i*6 + 1, P*3*leafDir, P*2);
+      }
+    }
+  });
+  X.globalAlpha = 1;
 }
 
-// ── Draw desk/workstation ──
-function drawDesk(x, y, color) {
-  // Coral desk — a flat surface with some texture
-  ctx.fillStyle = '#151a28';
-  // Desk top
-  ctx.fillRect(x - 15, y, 30, PX);
-  ctx.fillRect(x - 12, y + PX, 24, PX);
-  // Legs
-  ctx.fillRect(x - 12, y + PX*2, PX, PX*3);
-  ctx.fillRect(x + 9, y + PX*2, PX, PX*3);
-  // Screen/monitor on desk
-  ctx.fillStyle = '#101520';
-  ctx.fillRect(x - 6, y - PX*4, 12, PX*4);
-  // Screen glow
-  ctx.fillStyle = color;
-  ctx.globalAlpha = 0.3;
-  ctx.fillRect(x - 5, y - PX*3 - 1, 10, PX*3 - 2);
-  ctx.globalAlpha = 1;
-  // Screen content (blinking cursor / text lines)
-  ctx.fillStyle = color;
-  ctx.globalAlpha = 0.5;
-  ctx.fillRect(x - 3, y - PX*3 + 1, 6, 1);
-  ctx.fillRect(x - 3, y - PX*2 + 1, 4, 1);
-  ctx.globalAlpha = 1;
+function drawParticles(t) {
+  parts.forEach(p => {
+    X.globalAlpha = p.a;
+    X.fillStyle = p.c;
+    X.fillRect(Math.floor(p.x), Math.floor(p.y), Math.ceil(p.s), Math.ceil(p.s));
+  });
+  X.globalAlpha = 1;
 }
 
-// ── Draw Mia (jellyfish at desk) ──
+function drawBioluminescence(t) {
+  bios.forEach(b => {
+    const br = Math.max(0, Math.sin(t/b.pd + b.ph));
+    if (br < 0.05) return;
+    X.globalAlpha = br*0.3;
+    X.fillStyle = b.c;
+    const sz = Math.ceil(b.s);
+    X.fillRect(Math.floor(b.x), Math.floor(b.y), sz, sz);
+    X.globalAlpha = br*0.08;
+    X.beginPath(); X.arc(b.x+sz/2, b.y+sz/2, 5+b.s*2, 0, Math.PI*2); X.fill();
+  });
+  X.globalAlpha = 1;
+}
+
+// ── Workstation: coral/anemone themed ──
+function drawStation(sx, color, active, t) {
+  // Base: coral formation
+  X.fillStyle = PAL.coral1;
+  // Main coral mound
+  for (let j = 0; j < 20; j += P) {
+    const rw = 22 - j*0.5;
+    X.fillRect(sx-rw/2, FLOOR-j, rw, P);
+  }
+  // Side growths
+  X.fillStyle = PAL.coral3;
+  X.fillRect(sx-14, FLOOR-12, 6, 8);
+  X.fillRect(sx+8, FLOOR-10, 6, 6);
+
+  // Anemone tendrils on top (swaying)
+  for (let i = 0; i < 5; i++) {
+    const ax = sx - 8 + i*4;
+    const sway = Math.sin(t*0.8 + i*1.2) * 2;
+    X.fillStyle = i%2===0 ? PAL.anemone : PAL.anemone2;
+    X.globalAlpha = 0.5;
+    for (let j = 0; j < 4; j++) {
+      X.fillRect(ax + sway*(j/3), FLOOR-20-j*P*2, P, P*2);
+    }
+  }
+  X.globalAlpha = 1;
+
+  // Glowing screen/crystal embedded in coral
+  if (active) {
+    // Screen shape
+    X.fillStyle = '#0a0e18';
+    X.fillRect(sx-8, FLOOR-32, 16, 12);
+    // Screen glow
+    X.fillStyle = color;
+    X.globalAlpha = 0.25 + Math.sin(t*2)*0.1;
+    X.fillRect(sx-7, FLOOR-31, 14, 10);
+    // Text lines on screen
+    X.globalAlpha = 0.4;
+    X.fillRect(sx-5, FLOOR-29, 8, 1);
+    X.fillRect(sx-5, FLOOR-27, 6, 1);
+    X.fillRect(sx-5, FLOOR-25, 9, 1);
+    // Cursor blink
+    if (Math.floor(t*3) % 2 === 0) {
+      X.fillRect(sx+5, FLOOR-25, 2, 1);
+    }
+    X.globalAlpha = 1;
+    // Screen light cast on surroundings
+    X.globalAlpha = 0.04;
+    X.beginPath(); X.arc(sx, FLOOR-26, 30, 0, Math.PI*2);
+    X.fillStyle = color; X.fill();
+    X.globalAlpha = 1;
+  }
+}
+
+// ── Mia: jellyfish (larger, more detailed) ──
 function drawMia(t) {
-  const st = stations.mia;
-  const cx = st.x, cy = st.deskY - PX*6; // sitting above desk
-  const pulse = Math.sin(t * 1.2);
+  const sx = STX.mia, cy = FLOOR - 38;
+  const pulse = Math.sin(t*1.0);
   const working = agents.mia.state === 'working';
 
-  // Glow
-  ctx.globalAlpha = 0.06 + (working ? pulse*0.03 : 0);
-  ctx.beginPath(); ctx.arc(cx, cy - PX*2, 18, 0, Math.PI*2);
-  ctx.fillStyle = MIA_CLR; ctx.fill(); ctx.globalAlpha = 1;
+  // Glow halo
+  X.globalAlpha = 0.05 + (working ? pulse*0.02 : 0);
+  X.beginPath(); X.arc(sx, cy-P*4, 24, 0, Math.PI*2);
+  X.fillStyle = PAL.miaGlow; X.fill();
+  X.globalAlpha = 1;
 
-  // Bell
+  // Bell (bigger, rounder)
   const bell = [
-    [0,0,1,1,1,1,0,0],
-    [0,1,1,1,1,1,1,0],
-    [1,1,1,1,1,1,1,1],
-    [1,1,1,1,1,1,1,1],
-    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,1,1,1,1,1,1,0,0,0,0],
+    [0,0,0,1,1,1,1,1,1,1,1,0,0,0],
+    [0,0,1,1,1,2,2,2,2,1,1,1,0,0],
+    [0,1,1,1,2,2,2,2,2,2,1,1,1,0],
+    [0,1,1,2,2,3,3,3,3,2,2,1,1,0],
+    [1,1,1,2,2,3,3,3,3,2,2,1,1,1],
+    [1,1,1,1,2,2,2,2,2,2,1,1,1,1],
+    [0,1,1,1,1,1,1,1,1,1,1,1,1,0],
+    [0,0,4,0,4,0,4,0,4,0,4,0,4,0],
   ];
-  const inner = [
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,1,1,0,0,0],
-    [0,0,1,1,1,1,0,0],
-    [0,0,0,1,1,0,0,0],
-    [0,0,0,0,0,0,0,0],
-  ];
+  const cmap = {
+    1: PAL.mia3, 2: PAL.mia2, 3: PAL.mia, 4: PAL.mia2,
+  };
   const bw = bell[0].length, bh = bell.length;
   for (let r = 0; r < bh; r++) {
     for (let c = 0; c < bw; c++) {
       if (!bell[r][c]) continue;
-      ctx.globalAlpha = 0.55 + (inner[r][c] ? 0.25 : 0) + (working ? pulse*0.1 : 0);
-      ctx.fillStyle = inner[r][c] ? MIA_CLR : MIA_CLR2;
-      ctx.fillRect(cx - (bw/2)*PX + c*PX, cy - bh*PX + r*PX, PX, PX);
+      ctx_a = 0.5 + (bell[r][c]===3 ? 0.3 : 0) + (working ? pulse*0.08 : 0);
+      X.globalAlpha = Math.min(1, ctx_a);
+      X.fillStyle = cmap[bell[r][c]];
+      X.fillRect(sx - (bw/2)*P + c*P, cy - bh*P + r*P, P, P);
     }
   }
-  // Short tentacles (not long — sitting)
-  for (let tt = 0; tt < 5; tt++) {
-    const tx = cx - 4*PX + tt*2*PX;
-    for (let i = 0; i < 3; i++) {
-      const ox = Math.sin(t + tt*0.7 + i*0.4) * 1.5;
-      ctx.globalAlpha = 0.3 - i*0.06;
-      ctx.fillStyle = MIA_CLR;
-      ctx.fillRect(tx + ox, cy + i*PX, PX, PX);
-    }
-  }
-  ctx.globalAlpha = 1;
 
-  // Typing animation (small dots near monitor)
-  if (working && Math.floor(t*3) % 2 === 0) {
-    ctx.fillStyle = MIA_CLR;
-    ctx.globalAlpha = 0.4;
-    ctx.fillRect(st.x - 4, st.deskY - 1, 2, 1);
-    ctx.fillRect(st.x + 1, st.deskY - 1, 2, 1);
-    ctx.globalAlpha = 1;
+  // Tentacles
+  const tCount = 7, tLens = [5,7,9,8,9,7,5];
+  for (let tt = 0; tt < tCount; tt++) {
+    const tx = sx - (tCount-1)*P + tt*P*2;
+    for (let i = 0; i < tLens[tt]; i++) {
+      const ox = Math.sin(t + tt*0.6 + i*0.35) * (1.5 + i*0.3);
+      X.globalAlpha = 0.3 - i*0.025;
+      X.fillStyle = (i%3===0) ? PAL.miaGlow : PAL.mia2;
+      X.fillRect(tx + ox, cy + i*P, P, P);
+    }
   }
+  X.globalAlpha = 1;
+
+  // Eyes (two small dots)
+  X.fillStyle = '#f0e8ff';
+  X.globalAlpha = 0.7;
+  X.fillRect(sx - P*2, cy - P*5, P, P);
+  X.fillRect(sx + P, cy - P*5, P, P);
+  X.globalAlpha = 1;
 }
 
-// ── Draw Nemo (clownfish — idle, floating near station or wandering) ──
-const nemoState = { x: stations.nemo.x, y: stations.nemo.deskY - PX*5, dir: 1 };
+// ── Nemo: clownfish (bigger, 2-stripe) ──
 function drawNemo(t) {
   const idle = agents.nemo.state === 'idle';
-  // If idle: gentle bob near station. If working: sit at desk.
-  if (idle) {
-    nemoState.x += Math.sin(t*0.4) * 0.3;
-    nemoState.y = stations.nemo.deskY - PX*8 + Math.sin(t*0.8) * 5;
-  } else {
-    nemoState.x = stations.nemo.x;
-    nemoState.y = stations.nemo.deskY - PX*5;
-  }
-  const cx = Math.floor(nemoState.x), cy = Math.floor(nemoState.y);
-  const d = nemoState.dir;
+  const sx = STX.nemo;
+  // If idle, float slightly above station; if working, sit at station
+  const ny = idle ? FLOOR - 50 + Math.sin(t*0.6)*6 : FLOOR - 38;
+  const nx = idle ? sx + Math.sin(t*0.3)*8 : sx;
 
-  const sprite = [
-    [0,0,0,1,1,0,0,0],
-    [0,0,1,2,1,1,0,0],
-    [0,4,1,2,1,1,1,0],
-    [3,1,1,2,1,1,1,1],
-    [0,4,1,2,1,1,1,0],
-    [0,0,1,2,1,1,0,0],
-    [0,0,0,1,1,0,0,0],
+  // Clownfish sprite (facing right)
+  const fish = [
+    [0,0,0,0,0,1,1,0,0,0,0,0],
+    [0,0,0,0,1,1,1,1,0,0,0,0],
+    [0,0,0,1,2,1,1,1,1,0,0,0],
+    [0,0,1,2,1,1,2,1,1,1,0,0],
+    [4,4,1,2,1,1,2,1,1,1,1,0],
+    [0,3,1,2,1,5,2,1,1,1,1,1],
+    [4,4,1,2,1,1,2,1,1,1,1,0],
+    [0,0,1,2,1,1,2,1,1,1,0,0],
+    [0,0,0,1,2,1,1,1,1,0,0,0],
+    [0,0,0,0,1,1,1,1,0,0,0,0],
+    [0,0,0,0,0,1,1,0,0,0,0,0],
   ];
-  const colors = { 1: NEMO_CLR, 2: '#fff', 3: '#cc6630', 4: '#ff8040' };
-  const bw = sprite[0].length, bh = sprite.length;
+  // 1=orange, 2=white, 3=dark orange, 4=fin, 5=eye
+  const cm = { 1:PAL.nemo, 2:PAL.nemoW, 3:PAL.nemoD, 4:'#ff9060', 5:'#1a1a1a' };
+  const bw = fish[0].length, bh = fish.length;
   for (let r = 0; r < bh; r++) {
     for (let c = 0; c < bw; c++) {
-      if (!sprite[r][c]) continue;
-      ctx.fillStyle = colors[sprite[r][c]];
-      const dc = d > 0 ? c : (bw-1-c);
-      ctx.fillRect(cx - (bw/2)*PX + dc*PX, cy - (bh/2)*PX + r*PX, PX, PX);
+      if (!fish[r][c]) continue;
+      X.fillStyle = cm[fish[r][c]];
+      X.fillRect(Math.floor(nx) - (bw/2)*P + c*P, Math.floor(ny) - (bh/2)*P + r*P, P, P);
     }
   }
-  // Eye
-  ctx.fillStyle = '#111';
-  ctx.fillRect(cx + (d>0 ? 2 : -3)*PX, cy - PX, PX, PX);
-  // Tail wag
-  ctx.fillStyle = NEMO_CLR;
-  const tailC = d > 0 ? -(bw/2)*PX - PX : (bw/2)*PX;
-  ctx.fillRect(cx + tailC, cy - PX + Math.sin(t*3)*PX, PX, PX*2);
 
-  // Zzz if idle
+  // Tail wag
+  X.fillStyle = PAL.nemo;
+  const tailX = Math.floor(nx) - (bw/2)*P - P;
+  const wagY = Math.sin(t*3)*P;
+  X.fillRect(tailX, Math.floor(ny) - P + wagY, P, P*3);
+  X.fillRect(tailX-P, Math.floor(ny) + wagY, P, P*2);
+
+  // Idle: Zzz
   if (idle) {
-    const zAlpha = 0.3 + Math.sin(t*2)*0.15;
-    ctx.globalAlpha = zAlpha;
-    ctx.font = '7px Courier New';
-    ctx.fillStyle = NEMO_CLR;
-    ctx.fillText('z', cx + 12, cy - 10 + Math.sin(t)*2);
-    ctx.fillText('z', cx + 17, cy - 16 + Math.sin(t+1)*2);
-    ctx.globalAlpha = 1;
+    X.font = '8px Courier New';
+    X.globalAlpha = 0.25 + Math.sin(t*1.5)*0.1;
+    X.fillStyle = PAL.nemo;
+    X.fillText('z', nx+14, ny-8+Math.sin(t)*2);
+    X.globalAlpha = 0.18 + Math.sin(t*1.5+1)*0.08;
+    X.fillText('z', nx+20, ny-15+Math.sin(t+0.5)*2);
+    X.globalAlpha = 1;
   }
+
+  return { x: nx, y: ny };
 }
 
-// ── Draw Nova (anglerfish at desk) ──
+// ── Nova: anglerfish (bigger, menacing, glowing lure) ──
 function drawNova(t) {
-  const st = stations.nova;
-  const cx = st.x, cy = st.deskY - PX*5;
+  const sx = STX.nova, cy = FLOOR - 36;
   const working = agents.nova.state === 'working';
 
-  const sprite = [
-    [0,0,0,0,0,1,1,0,0,0],
-    [0,0,0,1,1,1,1,1,0,0],
-    [0,0,1,1,1,1,1,1,1,0],
-    [0,1,1,1,4,1,1,1,1,1],
-    [0,1,2,1,1,1,1,1,1,0],
-    [0,0,2,1,1,1,1,1,0,0],
-    [0,0,0,3,0,3,0,3,0,0],
+  const fish = [
+    [0,0,0,0,0,0,0,0,1,1,0,0,0,0],
+    [0,0,0,0,0,0,1,1,1,1,1,0,0,0],
+    [0,0,0,0,0,1,1,1,1,1,1,1,0,0],
+    [0,0,0,0,1,1,1,1,1,1,1,1,1,0],
+    [0,0,0,1,1,1,1,4,1,1,1,1,1,1],
+    [0,0,0,1,2,1,1,1,1,1,1,1,1,0],
+    [0,0,0,0,2,1,1,1,1,1,1,1,0,0],
+    [0,0,0,0,0,2,1,1,1,1,1,0,0,0],
+    [0,0,0,0,0,0,3,0,3,0,3,0,0,0],
   ];
-  const bw = sprite[0].length, bh = sprite.length;
+  const cm = { 1:PAL.nova3, 2:'#0e1828', 3:'#667', 4:PAL.nova };
+  const bw = fish[0].length, bh = fish.length;
   for (let r = 0; r < bh; r++) {
     for (let c = 0; c < bw; c++) {
-      if (!sprite[r][c]) continue;
-      if (sprite[r][c]===4) ctx.fillStyle = NOVA_CLR;
-      else if (sprite[r][c]===3) ctx.fillStyle = '#889';
-      else if (sprite[r][c]===2) ctx.fillStyle = '#0e1828';
-      else ctx.fillStyle = '#152540';
-      ctx.fillRect(cx - Math.floor(bw/2)*PX + c*PX, cy - Math.floor(bh/2)*PX + r*PX, PX, PX);
+      if (!fish[r][c]) continue;
+      X.fillStyle = cm[fish[r][c]];
+      X.fillRect(sx - (bw/2)*P + c*P, cy - (bh/2)*P + r*P, P, P);
     }
   }
 
-  // Lure
-  const antX = cx + 2*PX, antTopY = cy - Math.floor(bh/2)*PX;
-  ctx.fillStyle = '#152540';
-  ctx.fillRect(antX, antTopY - PX, PX, PX);
-  ctx.fillRect(antX+PX, antTopY - PX*2, PX, PX);
-  ctx.fillRect(antX+PX*2, antTopY - PX*3, PX, PX);
-  // Glow
-  const glow = working ? 0.6 + Math.sin(t*2.5)*0.35 : 0.2 + Math.sin(t*0.8)*0.1;
-  ctx.globalAlpha = glow;
-  ctx.fillStyle = NOVA_CLR;
-  ctx.fillRect(antX+PX*3, antTopY-PX*4, PX*2, PX*2);
-  ctx.globalAlpha = glow*0.2;
-  ctx.beginPath(); ctx.arc(antX+PX*4, antTopY-PX*3, 10, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = glow*0.06;
-  ctx.beginPath(); ctx.arc(antX+PX*4, antTopY-PX*3, 20, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
+  // Fins
+  X.fillStyle = PAL.nova3;
+  X.globalAlpha = 0.6;
+  const finSway = Math.sin(t*1.5);
+  X.fillRect(sx - (bw/2)*P - P, cy + P + finSway, P, P*3);
+  X.fillRect(sx + P*3, cy - (bh/2)*P + P*2, P*2, P);
+  X.globalAlpha = 1;
 
-  // Typing
-  if (working && Math.floor(t*4) % 2 === 0) {
-    ctx.fillStyle = NOVA_CLR;
-    ctx.globalAlpha = 0.4;
-    ctx.fillRect(st.x - 4, st.deskY - 1, 2, 1);
-    ctx.fillRect(st.x + 2, st.deskY - 1, 2, 1);
-    ctx.globalAlpha = 1;
+  // Lure antenna (curved)
+  const antBase = { x: sx + P*2, y: cy - (bh/2)*P };
+  X.fillStyle = PAL.nova3;
+  const pts = [[0,-P],[P,-P*2],[P*2,-P*3],[P*3,-P*4],[P*4,-P*4]];
+  pts.forEach(([ox,oy]) => X.fillRect(antBase.x+ox, antBase.y+oy, P, P));
+
+  // Glowing orb
+  const gInt = working ? 0.6+Math.sin(t*2.5)*0.35 : 0.15+Math.sin(t*0.6)*0.1;
+  const orbX = antBase.x + P*5, orbY = antBase.y - P*4;
+  X.globalAlpha = gInt;
+  X.fillStyle = PAL.novaGlow;
+  X.fillRect(orbX, orbY, P*3, P*3);
+  // Inner glow
+  X.globalAlpha = gInt*0.3;
+  X.beginPath(); X.arc(orbX+P*1.5, orbY+P*1.5, 8, 0, Math.PI*2); X.fill();
+  X.globalAlpha = gInt*0.08;
+  X.beginPath(); X.arc(orbX+P*1.5, orbY+P*1.5, 18, 0, Math.PI*2); X.fill();
+  // Light cast on nearby area
+  if (working) {
+    X.globalAlpha = gInt*0.03;
+    X.beginPath(); X.arc(orbX+P*1.5, orbY+P*1.5, 40, 0, Math.PI*2); X.fill();
   }
+  X.globalAlpha = 1;
 }
 
-// ── Environment ──
-function drawSeabed() {
-  ctx.fillStyle = '#0a0e18';
-  for (let x = 0; x < W; x += PX) {
-    const h = 10 + Math.sin(x*0.04)*5 + Math.sin(x*0.11)*4 + Math.sin(x*0.23)*2;
-    ctx.fillRect(x, H-h, PX, h);
-  }
-  const rocks = [[25,12,20],[140,9,16],[350,10,14]];
-  rocks.forEach(([rx,rh,rw]) => {
-    ctx.fillStyle = '#0d1220';
-    ctx.fillRect(rx, H-rh-8, rw, rh);
-  });
+// ── Speech bubble ──
+function drawBubble(x, y, text, alpha) {
+  X.save();
+  X.globalAlpha = alpha;
+  X.font = '8px Courier New';
+  const tw = X.measureText(text).width;
+  const bw = tw + 10, bh = 14;
+  const bx = x - bw/2, by = y;
+
+  // Background
+  X.fillStyle = '#0e1220';
+  X.strokeStyle = 'rgba(80,140,200,0.15)';
+  X.lineWidth = 0.5;
+  // Rounded-ish rect
+  X.beginPath();
+  X.moveTo(bx+2,by); X.lineTo(bx+bw-2,by);
+  X.lineTo(bx+bw,by+2); X.lineTo(bx+bw,by+bh-2);
+  X.lineTo(bx+bw-2,by+bh); X.lineTo(bx+2,by+bh);
+  X.lineTo(bx,by+bh-2); X.lineTo(bx,by+2);
+  X.closePath();
+  X.fill(); X.stroke();
+
+  // Pointer
+  X.fillStyle = '#0e1220';
+  X.fillRect(x-1, by+bh, 3, 3);
+
+  // Text
+  X.fillStyle = '#8899aa';
+  X.fillText(text, bx+5, by+10);
+  X.restore();
 }
 
-function drawSeaweed(t) {
-  seaweeds.forEach(sw => {
-    let sy = H - 12;
-    for (let i = 0; i < sw.segments; i++) {
-      const sway = Math.sin(t*0.6 + sw.phase + i*0.5) * (1.5 + i*0.4);
-      ctx.globalAlpha = 0.45 - i*0.04;
-      ctx.fillStyle = sw.color;
-      ctx.fillRect(sw.x + sway, sy - i*5, PX, 5);
-    }
-  });
-  ctx.globalAlpha = 1;
+// ── Name labels ──
+function drawLabels(nemoPos) {
+  X.font = '7px Courier New';
+  X.globalAlpha = 0.25;
+  X.fillStyle = PAL.mia;
+  X.fillText('Mia', STX.mia-7, FLOOR-60);
+  X.fillStyle = PAL.nemo;
+  X.fillText('Nemo', nemoPos.x-9, nemoPos.y-16);
+  X.fillStyle = PAL.nova;
+  X.fillText('Nova', STX.nova-9, FLOOR-60);
+  X.globalAlpha = 1;
 }
 
-function drawLightRays(t) {
-  for (let i = 0; i < 3; i++) {
-    const x = 70 + i*130 + Math.sin(t*0.12+i)*8;
-    ctx.globalAlpha = 0.012 + Math.sin(t*0.25+i*1.5)*0.006;
-    ctx.fillStyle = '#4080c0';
-    ctx.beginPath();
-    ctx.moveTo(x-5,0); ctx.lineTo(x-30,H); ctx.lineTo(x+20,H); ctx.lineTo(x+5,0);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-function drawPlankton(t) {
-  plankton.forEach(p => {
-    const b = Math.max(0, Math.sin(t/p.period + p.phase));
-    if (b < 0.1) return;
-    ctx.globalAlpha = b*0.4;
-    ctx.fillStyle = p.color;
-    ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 2, 2);
-    ctx.globalAlpha = b*0.12;
-    ctx.beginPath(); ctx.arc(p.x+1,p.y+1,4,0,Math.PI*2); ctx.fill();
-  });
-  ctx.globalAlpha = 1;
-}
-
-// ── Main loop ──
+// ── Update ──
 let frame = 0;
 function update() {
   frame++;
   const t = frame * 0.02;
 
-  particles.forEach(p => {
-    p.y -= p.speed;
-    p.x += p.drift * Math.sin(t + p.x*0.01);
+  parts.forEach(p => {
+    p.y -= p.spd; p.x += p.dr*Math.sin(t+p.x*0.005);
     if (p.y < -5) { p.y = H+5; p.x = Math.random()*W; }
   });
-  plankton.forEach(p => {
-    p.x += Math.sin(t*0.3+p.phase)*0.08;
-    p.y += Math.cos(t*0.2+p.phase)*0.04;
+  bios.forEach(b => {
+    b.x += Math.sin(t*0.2+b.ph)*0.06;
+    b.y += Math.cos(t*0.15+b.ph)*0.04;
   });
 
-  // Speech bubbles
-  bubbleTimer++;
-  if (bubbleTimer > 150) {
-    bubbleTimer = 0;
+  bubT++;
+  if (bubT > 180) {
+    bubT = 0;
     const ids = ['mia','nemo','nova'];
     const pick = ids[Math.floor(Math.random()*3)];
-    bubbles[pick] = randomBubble(pick);
+    const msgs = MSGS[pick];
+    bubs[pick] = { text: msgs[Math.floor(Math.random()*msgs.length)], life: 140 };
   }
   for (const id of ['mia','nemo','nova']) {
-    if (bubbles[id]) {
-      bubbles[id].life--;
-      if (bubbles[id].life <= 0) bubbles[id] = null;
-    }
+    if (bubs[id]) { bubs[id].life--; if (bubs[id].life<=0) bubs[id]=null; }
   }
 }
 
 function draw() {
   const t = frame * 0.02;
-  // BG
-  const grad = ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'#0c1225');
-  grad.addColorStop(0.4,'#080e1a');
-  grad.addColorStop(0.7,'#060a14');
-  grad.addColorStop(1,'#050810');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,W,H);
 
-  drawLightRays(t);
-
-  // Particles
-  particles.forEach(p => {
-    ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = p.color;
-    ctx.fillRect(Math.floor(p.x), Math.floor(p.y), Math.ceil(p.r), Math.ceil(p.r));
-  });
-  ctx.globalAlpha = 1;
-
-  drawSeaweed(t);
+  drawBg(t);
+  drawParticles(t);
+  drawBgCorals();
+  drawKelp(t);
   drawSeabed();
-  drawPlankton(t);
+  drawBioluminescence(t);
 
-  // Desks
-  drawDesk(stations.mia.x, stations.mia.deskY, MIA_CLR);
-  drawDesk(stations.nova.x, stations.nova.deskY, NOVA_CLR);
-  // Nemo desk only if working
-  if (agents.nemo.state === 'working') {
-    drawDesk(stations.nemo.x, stations.nemo.deskY, NEMO_CLR);
-  }
+  // Stations
+  drawStation(STX.mia, PAL.mia, agents.mia.state==='working', t);
+  drawStation(STX.nova, PAL.nova, agents.nova.state==='working', t);
+  if (agents.nemo.state==='working') drawStation(STX.nemo, PAL.nemo, true, t);
 
   // Agents
   drawMia(t);
-  drawNemo(t);
+  const nPos = drawNemo(t);
   drawNova(t);
 
-  // Bubbles
-  if (bubbles.mia) {
-    const fade = bubbles.mia.life < 20 ? bubbles.mia.life/20 : 1;
-    ctx.globalAlpha = fade;
-    drawBubble(stations.mia.x, stations.mia.deskY - PX*16, bubbles.mia.text);
-    ctx.globalAlpha = 1;
-  }
-  if (bubbles.nemo) {
-    const fade = bubbles.nemo.life < 20 ? bubbles.nemo.life/20 : 1;
-    ctx.globalAlpha = fade;
-    drawBubble(nemoState.x, nemoState.y - 18, bubbles.nemo.text);
-    ctx.globalAlpha = 1;
-  }
-  if (bubbles.nova) {
-    const fade = bubbles.nova.life < 20 ? bubbles.nova.life/20 : 1;
-    ctx.globalAlpha = fade;
-    drawBubble(stations.nova.x, stations.nova.deskY - PX*16, bubbles.nova.text);
-    ctx.globalAlpha = 1;
-  }
+  // Labels
+  drawLabels(nPos);
 
-  // Name labels above agents
-  ctx.font = '7px Courier New';
-  ctx.globalAlpha = 0.35;
-  ctx.fillStyle = MIA_CLR;
-  ctx.fillText('Mia', stations.mia.x - 7, stations.mia.deskY - PX*13);
-  ctx.fillStyle = NEMO_CLR;
-  ctx.fillText('Nemo', nemoState.x - 9, nemoState.y - 14);
-  ctx.fillStyle = NOVA_CLR;
-  ctx.fillText('Nova', stations.nova.x - 9, stations.nova.deskY - PX*13);
-  ctx.globalAlpha = 1;
+  // Bubbles
+  for (const [id, pos] of [['mia',{x:STX.mia,y:FLOOR-70}],['nemo',{x:nPos.x,y:nPos.y-22}],['nova',{x:STX.nova,y:FLOOR-70}]]) {
+    if (bubs[id]) {
+      const fade = bubs[id].life < 25 ? bubs[id].life/25 : (bubs[id].life > 120 ? (140-bubs[id].life)/20 : 1);
+      drawBubble(pos.x, pos.y, bubs[id].text, fade);
+    }
+  }
 }
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
