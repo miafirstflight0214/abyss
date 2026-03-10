@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Abyss</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #070a10;
-    color: #c8c8c8;
+    background: #060810;
+    color: #c8c8d0;
     font-family: 'Courier New', monospace;
     min-height: 100vh;
     display: flex;
@@ -17,60 +18,112 @@
     justify-content: center;
     overflow-x: hidden;
     overflow-y: hidden;
+    /* subtle noise texture via SVG */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   }
   #scene-wrap {
     width: 100%; max-width: 840px; margin-top: 24px;
-    position: relative; border-radius: 6px; overflow: hidden;
-    border: 1px solid rgba(80,140,200,0.06);
-    box-shadow: 0 0 100px rgba(15,40,80,0.2), inset 0 0 60px rgba(0,0,0,0.3);
+    position: relative; border-radius: 4px; overflow: hidden;
+    /* pixel-style double border */
+    border: 2px solid #1a2030;
+    box-shadow:
+      0 0 0 1px #0c1018,
+      0 0 80px rgba(20,60,120,0.25),
+      inset 0 0 60px rgba(0,0,0,0.4),
+      0 0 160px rgba(80,40,120,0.06);
   }
-  /* CRT-like subtle overlay */
+  /* CRT scanlines + vignette */
   #scene-wrap::after {
     content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
-    background: repeating-linear-gradient(to bottom, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 6px);
+    background:
+      repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px),
+      radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%);
   }
   canvas { display: block; width: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
 
   #cards {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
-    width: 100%; max-width: 840px; margin: 12px auto 20px; padding: 0 12px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    width: 100%; max-width: 840px; margin: 14px auto 20px; padding: 0 12px;
   }
   .card {
-    background: #0b0e16; border-radius: 4px; padding: 14px 16px;
-    border: 1px solid rgba(80,140,200,0.06); transition: border-color 0.4s;
+    background: #0a0e18;
+    border-radius: 2px;
+    padding: 14px 16px;
+    /* pixel-art style border using box-shadow */
+    border: none;
+    box-shadow:
+      inset 0 0 0 1px #182030,
+      inset 0 0 0 2px #0c1018,
+      0 0 20px rgba(20,60,120,0.08);
+    transition: box-shadow 0.4s;
+    position: relative;
   }
-  .card:hover { border-color: rgba(80,140,200,0.15); }
-  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .card-dot { width: 5px; height: 5px; border-radius: 50%; }
-  .card-dot.active { animation: pulse-dot 2.5s ease-in-out infinite; }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--card-accent, #2a4060), transparent);
+    opacity: 0.4;
+  }
+  .card:hover {
+    box-shadow:
+      inset 0 0 0 1px #2a3a50,
+      inset 0 0 0 2px #0c1018,
+      0 0 30px rgba(40,80,160,0.12);
+  }
+  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .card-dot { width: 6px; height: 6px; border-radius: 0; /* square pixel dot */ }
+  .card-dot.active { animation: pulse-dot 2.5s ease-in-out infinite; box-shadow: 0 0 6px currentColor; }
   @keyframes pulse-dot { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-  .card-name { font-size: 12px; font-weight: bold; }
+  .card-name { font-family: 'Press Start 2P', monospace; font-size: 9px; letter-spacing: 0.05em; }
   .card-name.mia { color: #c4a0ee; }
   .card-name.nemo { color: #ffab70; }
   .card-name.nova { color: #60c4ff; }
-  .card-role { font-size: 9px; color: #5a5a68; margin-bottom: 6px; letter-spacing: 0.06em; }
-  .card-status { font-size: 10px; color: #7a7a88; }
-  .card-task { font-size: 10px; color: #555568; margin-top: 2px; }
-  #title { font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(80,140,200,0.2); margin-top: 20px; }
-  #footer { font-size: 8px; letter-spacing: 0.2em; color: rgba(80,140,200,0.1); margin-bottom: 20px; }
-  .gpad {
-    background: rgba(80,140,200,0.15); border: 1px solid rgba(80,140,200,0.25);
-    color: rgba(200,220,240,0.6); font-size: 18px; border-radius: 8px;
-    width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: none;
+  .card-role { font-size: 8px; color: #3a4a5a; margin-bottom: 6px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .card-status { font-size: 10px; color: #5a6a78; font-family: 'Courier New', monospace; }
+  .card-task { font-size: 9px; color: #3a4858; margin-top: 3px; }
+  #title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px; letter-spacing: 0.5em; text-transform: uppercase;
+    color: #2a4a6a; margin-top: 20px;
+    text-shadow: 0 0 20px rgba(40,80,160,0.3), 0 0 40px rgba(40,80,160,0.1);
   }
-  .gpad:active { background: rgba(80,140,200,0.35); color: rgba(200,220,240,0.9); }
+  #footer {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 5px; letter-spacing: 0.3em;
+    color: rgba(40,80,160,0.15); margin-bottom: 20px;
+  }
+  #bgm-btn {
+    position: fixed; bottom: 16px; right: 16px; z-index: 100;
+    background: rgba(20,40,80,0.2);
+    border: 1px solid rgba(40,80,160,0.2);
+    color: #3a5a7a; font-family: 'Press Start 2P', monospace;
+    font-size: 7px; padding: 6px 10px; cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.3s;
+    text-shadow: 0 0 8px rgba(40,80,160,0.3);
+  }
+  #bgm-btn:hover { background: rgba(40,80,160,0.25); color: #5a8ab0; }
+  .gpad {
+    background: rgba(20,40,80,0.25); border: 1px solid rgba(40,80,160,0.3);
+    color: rgba(140,180,220,0.5); font-size: 16px; border-radius: 2px;
+    width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: none;
+    font-family: 'Press Start 2P', monospace;
+    box-shadow: 0 0 8px rgba(40,80,160,0.1);
+  }
+  .gpad:active { background: rgba(40,80,160,0.4); color: rgba(180,210,240,0.8); box-shadow: 0 0 16px rgba(40,80,160,0.3); }
   @media (max-width: 600px) {
     body { justify-content: flex-start; padding: 0; }
-    #title { margin-top: 8px; font-size: 8px; }
+    #title { margin-top: 8px; font-size: 7px; }
     #scene-wrap { margin-top: 4px; border-radius: 0; border: none; box-shadow: none; width: 100vw; max-width: 100vw; }
     canvas { width: 100%; height: 55vh; object-fit: cover; }
     #cards { grid-template-columns: 1fr; padding: 0 12px; gap: 8px; margin: 8px auto 12px; }
     .card { padding: 10px 12px; }
-    .card-name { font-size: 11px; }
-    .card-role { font-size: 8px; margin-bottom: 4px; }
-    .card-status, .card-task { font-size: 9px; }
-    #footer { margin-bottom: 8px; font-size: 7px; }
+    .card-name { font-size: 8px; }
+    .card-role { font-size: 7px; margin-bottom: 4px; }
+    .card-status, .card-task { font-size: 8px; }
+    #footer { margin-bottom: 8px; font-size: 4px; }
+    #bgm-btn { font-size: 6px; padding: 5px 8px; bottom: 10px; right: 10px; }
   }
 </style>
 </head>
@@ -78,27 +131,27 @@
 <div id="title">Abyss</div>
 <div id="scene-wrap"><canvas id="scene"></canvas></div>
 <div id="cards">
-  <div class="card">
-    <div class="card-head"><span class="card-dot active" style="background:#c4a0ee"></span><span class="card-name mia">Mia</span></div>
+  <div class="card" style="--card-accent:#c4a0ee">
+    <div class="card-head"><span class="card-dot active" style="background:#c4a0ee;color:#c4a0ee"></span><span class="card-name mia">Mia</span></div>
     <div class="card-role">CLASS: Coordinator</div>
     <div class="card-status">&gt; working</div>
     <div class="card-task">_ sees all, knows all, drifts above</div>
   </div>
-  <div class="card">
-    <div class="card-head"><span class="card-dot active" style="background:#ffab70"></span><span class="card-name nemo">Nemo</span></div>
+  <div class="card" style="--card-accent:#ffab70">
+    <div class="card-head"><span class="card-dot active" style="background:#ffab70;color:#ffab70"></span><span class="card-name nemo">Nemo</span></div>
     <div class="card-role">CLASS: Companion</div>
     <div class="card-status">&gt; idle</div>
     <div class="card-task">_ vibes only, good at snacks</div>
   </div>
-  <div class="card">
-    <div class="card-head"><span class="card-dot active" style="background:#60c4ff"></span><span class="card-name nova">Nova</span></div>
+  <div class="card" style="--card-accent:#60c4ff">
+    <div class="card-head"><span class="card-dot active" style="background:#60c4ff;color:#60c4ff"></span><span class="card-name nova">Nova</span></div>
     <div class="card-role">CLASS: Hunter</div>
     <div class="card-status">&gt; working</div>
     <div class="card-task">_ lurks deep, strikes precise</div>
   </div>
 </div>
 <div id="footer">THREE AGENTS · ONE ABYSS</div>
-<button id="bgm-btn" onclick="toggleBGM()" style="position:fixed;bottom:12px;right:12px;z-index:100;background:rgba(80,140,200,0.1);border:1px solid rgba(80,140,200,0.15);color:#7a7a88;font-family:'Courier New',monospace;font-size:10px;padding:6px 12px;border-radius:4px;cursor:pointer;backdrop-filter:blur(4px);">♪ OFF</button>
+<button id="bgm-btn" onclick="toggleBGM()">♪ OFF</button>
 
 <script>
 const C = document.getElementById('scene');
@@ -212,13 +265,24 @@ for (let i = 0; i < 10; i++) {
 // ── Draw functions ──
 
 function drawBg(t) {
-  // Deep gradient
+  // Deep gradient — richer layered colors (Hyper Light Drifter inspired)
   const g = X.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#122040');
-  g.addColorStop(0.3,'#0e1830');
-  g.addColorStop(0.6,'#0a1224');
-  g.addColorStop(1,'#080e1c');
+  g.addColorStop(0,'#0e1e3a');
+  g.addColorStop(0.25,'#0c1830');
+  g.addColorStop(0.5,'#0a1228');
+  g.addColorStop(0.75,'#0c0e20');
+  g.addColorStop(1,'#0a0c18');
   X.fillStyle = g; X.fillRect(0,0,W,H);
+
+  // Subtle ambient glow zones (teal bottom-left, magenta top-right)
+  X.globalAlpha = 0.04 + Math.sin(t*0.02)*0.01;
+  const glow1 = X.createRadialGradient(W*0.15, H*0.8, 0, W*0.15, H*0.8, W*0.5);
+  glow1.addColorStop(0,'#206060'); glow1.addColorStop(1,'transparent');
+  X.fillStyle = glow1; X.fillRect(0,0,W,H);
+  const glow2 = X.createRadialGradient(W*0.85, H*0.15, 0, W*0.85, H*0.15, W*0.4);
+  glow2.addColorStop(0,'#402050'); glow2.addColorStop(1,'transparent');
+  X.fillStyle = glow2; X.fillRect(0,0,W,H);
+  X.globalAlpha = 1;
 
   // Volumetric god rays — diverging from a sun point above, slowly drifting
   const sunX = W * 0.45 + Math.sin(t*0.04)*30, sunY = -40;
@@ -1025,30 +1089,30 @@ function startFlappyJellyfish() {
 
     // HUD
     gx.fillStyle = '#c8c8c8';
-    gx.font = 'bold 20px Courier New';
+    gx.font = '12px "Press Start 2P"';
     gx.textAlign = 'center';
     gx.fillText(score, gw / 2, 40);
 
     if (!started) {
-      gx.font = '14px Courier New';
+      gx.font = '9px "Press Start 2P"';
       gx.fillText('TAP TO START', gw / 2, gh / 2 + 40);
     }
     if (!alive) {
       gx.fillStyle = 'rgba(0,0,0,0.5)';
       gx.fillRect(0, 0, gw, gh);
       gx.fillStyle = '#ff6688';
-      gx.font = '24px Courier New';
+      gx.font = '14px "Press Start 2P"';
       gx.textAlign = 'center';
       gx.fillText('GAME OVER', gw / 2, gh / 2 - 10);
       gx.fillStyle = '#c8c8c8';
-      gx.font = '14px Courier New';
+      gx.font = '9px "Press Start 2P"';
       gx.fillText('Score: ' + score, gw / 2, gh / 2 + 20);
       gx.fillText('tap to close', gw / 2, gh / 2 + 45);
     }
 
     // Back
     gx.fillStyle = '#556';
-    gx.font = '12px Courier New';
+    gx.font = '8px "Press Start 2P"';
     gx.textAlign = 'left';
     gx.fillText('✕ back', 10, 24);
 
@@ -1196,7 +1260,7 @@ function startSnake() {
 
     // HUD
     gx.fillStyle = '#c8c8c8';
-    gx.font = 'bold 18px Courier New';
+    gx.font = '10px "Press Start 2P"';
     gx.textAlign = 'center';
     gx.fillText('SCORE: ' + score, gw / 2, 30);
 
@@ -1204,16 +1268,16 @@ function startSnake() {
       gx.fillStyle = 'rgba(0,0,0,0.5)';
       gx.fillRect(0, 0, gw, gh);
       gx.fillStyle = '#ffab70';
-      gx.font = '24px Courier New';
+      gx.font = '14px "Press Start 2P"';
       gx.fillText('GAME OVER', gw / 2, gh / 2 - 10);
       gx.fillStyle = '#c8c8c8';
-      gx.font = '14px Courier New';
+      gx.font = '9px "Press Start 2P"';
       gx.fillText('Score: ' + score + '  Length: ' + snake.length, gw / 2, gh / 2 + 20);
       gx.fillText('tap to close', gw / 2, gh / 2 + 45);
     }
 
     gx.fillStyle = '#556';
-    gx.font = '12px Courier New';
+    gx.font = '8px "Press Start 2P"';
     gx.textAlign = 'left';
     gx.fillText('✕ back', 10, 24);
 
@@ -1352,14 +1416,14 @@ function startBreakout() {
 
     // HUD
     gx.fillStyle = '#c8c8c8';
-    gx.font = 'bold 18px Courier New';
+    gx.font = '10px "Press Start 2P"';
     gx.textAlign = 'center';
     gx.fillText('SCORE: ' + score, gw / 2, 30);
 
     // Win
     if (blocks.every(b => !b.alive)) {
       gx.fillStyle = '#60c4ff';
-      gx.font = '24px Courier New';
+      gx.font = '14px "Press Start 2P"';
       gx.fillText('YOU WIN!', gw / 2, gh / 2);
     }
 
@@ -1367,16 +1431,16 @@ function startBreakout() {
       gx.fillStyle = 'rgba(0,0,0,0.5)';
       gx.fillRect(0, 0, gw, gh);
       gx.fillStyle = '#60c4ff';
-      gx.font = '24px Courier New';
+      gx.font = '14px "Press Start 2P"';
       gx.fillText('GAME OVER', gw / 2, gh / 2 - 10);
       gx.fillStyle = '#c8c8c8';
-      gx.font = '14px Courier New';
+      gx.font = '9px "Press Start 2P"';
       gx.fillText('Score: ' + score, gw / 2, gh / 2 + 20);
       gx.fillText('tap to close', gw / 2, gh / 2 + 45);
     }
 
     gx.fillStyle = '#556';
-    gx.font = '12px Courier New';
+    gx.font = '8px "Press Start 2P"';
     gx.textAlign = 'left';
     gx.fillText('✕ back', 10, 24);
 
