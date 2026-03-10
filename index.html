@@ -442,15 +442,13 @@ function drawNemo(t) {
   X.fillRect(tailX, ny - P + wagY, P, P*3);
   X.fillRect(tailX-P, ny + wagY, P, P*2);
 
-  // Idle: Zzz
+  // Idle free-roam: small trail bubbles
   const idle = agents.nemo.state === 'idle';
   if (idle) {
-    X.font = '9px Courier New';
-    X.globalAlpha = 0.35 + Math.sin(t*1.5)*0.1;
+    X.globalAlpha = 0.15;
     X.fillStyle = PAL.nemo;
-    X.fillText('z', nx+14, ny-8+Math.sin(t)*2);
-    X.globalAlpha = 0.25 + Math.sin(t*1.5+1)*0.08;
-    X.fillText('z', nx+20, ny-15+Math.sin(t+0.5)*2);
+    X.beginPath(); X.arc(nx-14, ny+2, 1.5, 0, Math.PI*2); X.fill();
+    X.beginPath(); X.arc(nx-18, ny-3, 1, 0, Math.PI*2); X.fill();
     X.globalAlpha = 1;
   }
 
@@ -591,18 +589,23 @@ function update() {
     b.y += Math.cos(t*0.15+b.ph)*0.04;
   });
 
-  // Agent movement: working = float above station, idle = return to station
+  // Agent movement: working = at station, idle = free roam
   for (const [id, stx] of [['mia',STX.mia],['nemo',STX.nemo],['nova',STX.nova]]) {
     const pos = agentPos[id];
     const working = agents[id].state === 'working';
     if (working) {
-      // Float above station with gentle movement
-      pos.tx = stx + Math.sin(t*0.25 + (id==='mia'?0:id==='nemo'?2:4)) * 25;
-      pos.ty = WORK_Y + Math.sin(t*0.4 + (id==='mia'?0:id==='nemo'?1.5:3)) * 15;
-    } else {
-      // Return to station
+      // Stay at station
       pos.tx = stx;
       pos.ty = IDLE_Y;
+    } else {
+      // Free roam — wander around the scene
+      pos.tx = stx + Math.sin(t*0.15 + (id==='mia'?0:id==='nemo'?2:4)) * 60
+                    + Math.sin(t*0.07 + (id==='mia'?1:id==='nemo'?3:5)) * 30;
+      pos.ty = 40 + Math.sin(t*0.2 + (id==='mia'?0:id==='nemo'?1.5:3)) * 40
+                   + Math.cos(t*0.12 + (id==='mia'?2:id==='nemo'?0:1)) * 30;
+      // Clamp to scene
+      pos.tx = Math.max(30, Math.min(W-30, pos.tx));
+      pos.ty = Math.max(30, Math.min(FLOOR-60, pos.ty));
     }
     // Smooth interpolation
     pos.x += (pos.tx - pos.x) * 0.02;
