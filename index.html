@@ -100,9 +100,9 @@ const PAL = {
 
 // ── Agent states ──
 const agents = {
-  mia:  { state: 'working' },
-  nemo: { state: 'idle' },
-  nova: { state: 'working' },
+  mia:  { state: 'working', timer: 0 },
+  nemo: { state: 'idle', timer: 80 },
+  nova: { state: 'working', timer: 40 },
 };
 
 // Workstation X positions
@@ -612,6 +612,17 @@ function update() {
     pos.y += (pos.ty - pos.y) * 0.02;
   }
 
+  // State switching: each agent randomly toggles between working/idle
+  for (const id of ['mia','nemo','nova']) {
+    agents[id].timer--;
+    if (agents[id].timer <= 0) {
+      agents[id].state = agents[id].state === 'working' ? 'idle' : 'working';
+      // Random duration: working 8-20s, idle 5-12s (at 50fps)
+      const isWork = agents[id].state === 'working';
+      agents[id].timer = Math.floor((isWork ? 400+Math.random()*600 : 250+Math.random()*350));
+    }
+  }
+
   bubT++;
   if (bubT > 180) {
     bubT = 0;
@@ -657,7 +668,18 @@ function draw() {
   }
 }
 
-function loop() { update(); draw(); requestAnimationFrame(loop); }
+// Update HTML cards to reflect state
+const cardEls = document.querySelectorAll('.card');
+const cardMap = { 0:'mia', 1:'nemo', 2:'nova' };
+function updateCards() {
+  for (let i = 0; i < 3; i++) {
+    const id = cardMap[i];
+    const st = cardEls[i].querySelector('.card-status');
+    if (st) st.textContent = agents[id].state === 'working' ? '> working' : '> idle';
+  }
+}
+
+function loop() { update(); draw(); if (frame%30===0) updateCards(); requestAnimationFrame(loop); }
 loop();
 </script>
 </body>
