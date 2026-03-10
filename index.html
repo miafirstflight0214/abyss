@@ -777,6 +777,554 @@ function updateCards() {
 
 function loop() { update(); draw(); if (frame%30===0) updateCards(); requestAnimationFrame(loop); }
 loop();
+
+// ═══════════════════════════════════════════════
+// ███ CHIPTUNE BGM (Web Audio procedural) ███
+// ═══════════════════════════════════════════════
+let audioCtx, bgmPlaying = false;
+function startBGM() {
+  if (bgmPlaying) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  bgmPlaying = true;
+  
+  // Deep sea ambient chiptune - arpeggiated minor chords with delay
+  const bpm = 72, stepTime = 60/bpm/4;
+  const notes = [
+    // Am pentatonic deep sea melody loop (MIDI numbers)
+    57,60,64,60, 57,60,64,67, 69,67,64,60, 64,60,57,53,
+    52,55,60,55, 52,55,60,64, 57,60,64,60, 57,55,52,48,
+  ];
+  const bass = [45,45,48,48, 43,43,45,45, 40,40,43,43, 45,45,48,48];
+  
+  function midiToFreq(n) { return 440 * Math.pow(2, (n-69)/12); }
+  
+  function playNote(freq, time, dur, vol, type) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    osc.type = type || 'triangle';
+    osc.frequency.value = freq;
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    filter.Q.value = 2;
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(vol, time+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, time+dur);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(time);
+    osc.stop(time+dur+0.1);
+  }
+  
+  function scheduleLoop() {
+    if (!bgmPlaying) return;
+    const now = audioCtx.currentTime + 0.1;
+    const loopLen = notes.length * stepTime;
+    for (let i = 0; i < notes.length; i++) {
+      playNote(midiToFreq(notes[i]), now + i*stepTime, stepTime*1.8, 0.06, 'triangle');
+    }
+    for (let i = 0; i < bass.length; i++) {
+      playNote(midiToFreq(bass[i]), now + i*stepTime*2, stepTime*3.5, 0.04, 'sine');
+    }
+    // Sub bass drone
+    const drone = audioCtx.createOscillator();
+    const dGain = audioCtx.createGain();
+    drone.type = 'sine';
+    drone.frequency.value = midiToFreq(33);
+    dGain.gain.value = 0.025;
+    drone.connect(dGain);
+    dGain.connect(audioCtx.destination);
+    drone.start(now);
+    drone.stop(now + loopLen);
+    
+    setTimeout(scheduleLoop, loopLen * 900);
+  }
+  scheduleLoop();
+}
+
+function stopBGM() {
+  bgmPlaying = false;
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+}
+
+// Click anywhere to start BGM
+document.addEventListener('click', function initAudio() {
+  startBGM();
+  document.removeEventListener('click', initAudio);
+}, { once: true });
+
+// ═══════════════════════════════════════════════
+// ███ MINI-GAMES ███
+// ═══════════════════════════════════════════════
+
+// Game overlay
+const gameOverlay = document.createElement('div');
+gameOverlay.id = 'game-overlay';
+gameOverlay.style.cssText = 'position:fixed;inset:0;z-index:1000;display:none;background:#070a10;';
+gameOverlay.innerHTML = '<canvas id="game-canvas" style="width:100%;height:100%;display:block;image-rendering:pixelated;"></canvas>';
+document.body.appendChild(gameOverlay);
+
+let activeGame = null;
+const GC = () => document.getElementById('game-canvas');
+const GX = () => GC().getContext('2d');
+
+function openGame(name) {
+  gameOverlay.style.display = 'block';
+  const gc = GC();
+  gc.width = window.innerWidth;
+  gc.height = window.innerHeight;
+  activeGame = name;
+  if (name === 'mia') startJellyfishJump();
+  else if (name === 'nemo') startBubbleCatch();
+  else if (name === 'nova') startDeepHunter();
+}
+
+function closeGame() {
+  activeGame = null;
+  gameOverlay.style.display = 'none';
+}
+
+// ── Click detection on canvas agents ──
+C.addEventListener('click', function(e) {
+  if (activeGame) return;
+  const rect = C.getBoundingClientRect();
+  const scaleX = W / rect.width, scaleY = H / rect.height;
+  const cx = (e.clientX - rect.left) * scaleX;
+  const cy = (e.clientY - rect.top) * scaleY;
+  
+  for (const id of ['mia','nemo','nova']) {
+    const pos = agentPos[id];
+    const dx = cx - pos.x, dy = cy - pos.y;
+    if (dx*dx + dy*dy < 900) { // 30px radius
+      openGame(id);
+      return;
+    }
+  }
+});
+
+// Touch support
+C.addEventListener('touchstart', function(e) {
+  if (activeGame) return;
+  const t = e.touches[0];
+  const rect = C.getBoundingClientRect();
+  const scaleX = W / rect.width, scaleY = H / rect.height;
+  const cx = (t.clientX - rect.left) * scaleX;
+  const cy = (t.clientY - rect.top) * scaleY;
+  for (const id of ['mia','nemo','nova']) {
+    const pos = agentPos[id];
+    const dx = cx - pos.x, dy = cy - pos.y;
+    if (dx*dx + dy*dy < 900) {
+      e.preventDefault();
+      openGame(id);
+      return;
+    }
+  }
+}, { passive: false });
+
+// ── GAME 1: Jellyfish Jump (Mia) ──
+// Tap to pulse upward, avoid falling rocks, collect light orbs
+function startJellyfishJump() {
+  const gc = GC(), gx = GX();
+  const gw = gc.width, gh = gc.height;
+  let score = 0, alive = true, raf;
+  const jf = { x: gw/2, y: gh*0.6, vy: 0 };
+  const rocks = [], orbs = [];
+  let gt = 0;
+  
+  function spawnRock() {
+    rocks.push({ x: Math.random()*gw, y: -20, w: 8+Math.random()*16, h: 8+Math.random()*12, vy: 1.5+Math.random()*2 });
+  }
+  function spawnOrb() {
+    orbs.push({ x: Math.random()*gw, y: -10, r: 4+Math.random()*4, vy: 0.8+Math.random()*1.5 });
+  }
+  
+  function pulse() { if (alive) jf.vy = -6; }
+  
+  const onInput = (e) => { e.preventDefault(); pulse(); };
+  gameOverlay.addEventListener('click', onInput);
+  gameOverlay.addEventListener('touchstart', onInput, {passive:false});
+  
+  function tick() {
+    if (!activeGame) { cleanup(); return; }
+    gt++;
+    gx.fillStyle = '#050810';
+    gx.fillRect(0,0,gw,gh);
+    
+    // Gravity + jellyfish
+    jf.vy += 0.15;
+    jf.y += jf.vy;
+    jf.y = Math.max(20, Math.min(gh-20, jf.y));
+    
+    // Draw jellyfish
+    const bellW = 18, bellH = 12;
+    const pul = Math.sin(gt*0.15)*3;
+    gx.fillStyle = '#c4a0ee';
+    gx.globalAlpha = 0.7;
+    gx.beginPath();
+    gx.ellipse(jf.x, jf.y, bellW+pul, bellH-pul/2, 0, Math.PI, 0);
+    gx.fill();
+    gx.globalAlpha = 0.4;
+    for (let i = -2; i <= 2; i++) {
+      const tx = jf.x + i*7;
+      const tLen = 15 + Math.sin(gt*0.1+i)*5;
+      gx.beginPath();
+      gx.moveTo(tx, jf.y);
+      gx.quadraticCurveTo(tx+Math.sin(gt*0.08+i*2)*8, jf.y+tLen*0.6, tx+Math.sin(gt*0.05+i)*4, jf.y+tLen);
+      gx.strokeStyle = '#c4a0ee';
+      gx.lineWidth = 2;
+      gx.stroke();
+    }
+    gx.globalAlpha = 1;
+    
+    // Spawn
+    if (gt%40===0) spawnRock();
+    if (gt%70===0) spawnOrb();
+    
+    // Rocks
+    for (let i = rocks.length-1; i >= 0; i--) {
+      const r = rocks[i];
+      r.y += r.vy;
+      gx.fillStyle = '#334';
+      gx.fillRect(r.x, r.y, r.w, r.h);
+      // Collision
+      if (alive && Math.abs(jf.x-r.x-r.w/2)<r.w && Math.abs(jf.y-r.y-r.h/2)<r.h) {
+        alive = false;
+        setTimeout(() => {
+          cleanup();
+          closeGame();
+        }, 1500);
+      }
+      if (r.y > gh+20) rocks.splice(i,1);
+    }
+    
+    // Orbs
+    for (let i = orbs.length-1; i >= 0; i--) {
+      const o = orbs[i];
+      o.y += o.vy;
+      gx.fillStyle = '#ffe080';
+      gx.globalAlpha = 0.6 + Math.sin(gt*0.1)*0.3;
+      gx.beginPath(); gx.arc(o.x, o.y, o.r, 0, Math.PI*2); gx.fill();
+      gx.globalAlpha = 1;
+      const dx = jf.x-o.x, dy = jf.y-o.y;
+      if (dx*dx+dy*dy < (o.r+15)*(o.r+15)) { score++; orbs.splice(i,1); continue; }
+      if (o.y > gh+10) orbs.splice(i,1);
+    }
+    
+    // Score
+    gx.fillStyle = '#c8c8c8';
+    gx.font = '16px Courier New';
+    gx.textAlign = 'center';
+    gx.fillText('SCORE: ' + score, gw/2, 30);
+    
+    if (!alive) {
+      gx.fillStyle = '#ff4444';
+      gx.font = '24px Courier New';
+      gx.fillText('GAME OVER', gw/2, gh/2);
+    }
+    
+    // Back button
+    gx.fillStyle = '#555';
+    gx.font = '12px Courier New';
+    gx.textAlign = 'left';
+    gx.fillText('✕ back', 10, 24);
+    
+    raf = requestAnimationFrame(tick);
+  }
+  
+  function cleanup() {
+    gameOverlay.removeEventListener('click', onInput);
+    gameOverlay.removeEventListener('touchstart', onInput);
+    cancelAnimationFrame(raf);
+  }
+  
+  // Back button click
+  const backHandler = (e) => {
+    const rect = gc.getBoundingClientRect();
+    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+    if (x < 80 && y < 40) { cleanup(); closeGame(); gameOverlay.removeEventListener('click', backHandler); }
+  };
+  setTimeout(() => gameOverlay.addEventListener('click', backHandler), 100);
+  
+  tick();
+}
+
+// ── GAME 2: Bubble Catch (Nemo) ──
+// Tap rising bubbles to score. 30 second time limit
+function startBubbleCatch() {
+  const gc = GC(), gx = GX();
+  const gw = gc.width, gh = gc.height;
+  let score = 0, timeLeft = 30, raf, gt = 0;
+  const bubbles = [];
+  const interval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft <= 0) {
+      clearInterval(interval);
+      setTimeout(() => { closeGame(); }, 2000);
+    }
+  }, 1000);
+  
+  function spawnBubble() {
+    const r = 12 + Math.random()*20;
+    bubbles.push({
+      x: 20+Math.random()*(gw-40), y: gh+r,
+      r, vy: -(1+Math.random()*2), vx: (Math.random()-0.5)*0.5,
+      hue: 180+Math.random()*40, popped: false, popT: 0
+    });
+  }
+  
+  function hitTest(e) {
+    e.preventDefault();
+    const rect = gc.getBoundingClientRect();
+    const ex = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const ey = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+    // Back button
+    if (ex < 80 && ey < 40) { clearInterval(interval); closeGame(); return; }
+    for (const b of bubbles) {
+      if (b.popped) continue;
+      const dx = ex-b.x, dy = ey-b.y;
+      if (dx*dx+dy*dy < b.r*b.r) {
+        b.popped = true; b.popT = gt;
+        score += Math.ceil(b.r/5);
+        break;
+      }
+    }
+  }
+  gameOverlay.addEventListener('click', hitTest);
+  gameOverlay.addEventListener('touchstart', hitTest, {passive:false});
+  
+  function tick() {
+    if (!activeGame) { clearInterval(interval); cleanup(); return; }
+    gt++;
+    // Water gradient bg
+    const grad = gx.createLinearGradient(0,0,0,gh);
+    grad.addColorStop(0, '#0a1525');
+    grad.addColorStop(1, '#061018');
+    gx.fillStyle = grad;
+    gx.fillRect(0,0,gw,gh);
+    
+    if (gt%25===0) spawnBubble();
+    
+    for (let i = bubbles.length-1; i >= 0; i--) {
+      const b = bubbles[i];
+      if (b.popped) {
+        // Pop animation
+        const dt = gt - b.popT;
+        gx.globalAlpha = Math.max(0, 1 - dt/15);
+        gx.strokeStyle = `hsl(${b.hue},60%,70%)`;
+        gx.lineWidth = 1;
+        gx.beginPath(); gx.arc(b.x, b.y, b.r + dt*2, 0, Math.PI*2); gx.stroke();
+        // Sparkles
+        for (let s = 0; s < 4; s++) {
+          const a = s*Math.PI/2 + dt*0.2;
+          gx.fillStyle = '#fff';
+          gx.fillRect(b.x+Math.cos(a)*(b.r+dt*3), b.y+Math.sin(a)*(b.r+dt*3), 2, 2);
+        }
+        gx.globalAlpha = 1;
+        if (dt > 15) bubbles.splice(i,1);
+        continue;
+      }
+      b.y += b.vy;
+      b.x += b.vx + Math.sin(gt*0.03+b.x*0.01)*0.3;
+      // Draw bubble
+      gx.globalAlpha = 0.3;
+      gx.fillStyle = `hsl(${b.hue},50%,60%)`;
+      gx.beginPath(); gx.arc(b.x, b.y, b.r, 0, Math.PI*2); gx.fill();
+      gx.globalAlpha = 0.6;
+      gx.strokeStyle = `hsl(${b.hue},60%,70%)`;
+      gx.lineWidth = 1.5;
+      gx.beginPath(); gx.arc(b.x, b.y, b.r, 0, Math.PI*2); gx.stroke();
+      // Highlight
+      gx.globalAlpha = 0.5;
+      gx.fillStyle = '#fff';
+      gx.beginPath(); gx.arc(b.x-b.r*0.3, b.y-b.r*0.3, b.r*0.2, 0, Math.PI*2); gx.fill();
+      gx.globalAlpha = 1;
+      if (b.y < -b.r-10) bubbles.splice(i,1);
+    }
+    
+    // HUD
+    gx.fillStyle = '#c8c8c8';
+    gx.font = '16px Courier New';
+    gx.textAlign = 'center';
+    gx.fillText('SCORE: ' + score + '  TIME: ' + Math.max(0,timeLeft), gw/2, 30);
+    
+    if (timeLeft <= 0) {
+      gx.fillStyle = '#ffab70';
+      gx.font = '24px Courier New';
+      gx.fillText('TIME UP! Score: ' + score, gw/2, gh/2);
+    }
+    
+    gx.fillStyle = '#555';
+    gx.font = '12px Courier New';
+    gx.textAlign = 'left';
+    gx.fillText('✕ back', 10, 24);
+    
+    raf = requestAnimationFrame(tick);
+  }
+  
+  function cleanup() {
+    gameOverlay.removeEventListener('click', hitTest);
+    gameOverlay.removeEventListener('touchstart', hitTest);
+    cancelAnimationFrame(raf);
+  }
+  tick();
+}
+
+// ── GAME 3: Deep Hunter (Nova) ──
+// Dark scene. Touch/move to aim anglerfish light. Find hidden creatures.
+function startDeepHunter() {
+  const gc = GC(), gx = GX();
+  const gw = gc.width, gh = gc.height;
+  let score = 0, found = 0, total = 6, raf, gt = 0;
+  let lightX = gw/2, lightY = gh/2;
+  
+  // Hidden creatures
+  const creatures = [];
+  for (let i = 0; i < total; i++) {
+    creatures.push({
+      x: 60+Math.random()*(gw-120), y: 60+Math.random()*(gh-120),
+      r: 10+Math.random()*8, revealed: false, revealT: 0,
+      type: Math.floor(Math.random()*3), // 0=fish, 1=crab, 2=starfish
+      hue: Math.random()*360
+    });
+  }
+  
+  function moveLight(e) {
+    e.preventDefault();
+    const rect = gc.getBoundingClientRect();
+    lightX = (e.clientX || e.touches?.[0]?.clientX || lightX) - rect.left;
+    lightY = (e.clientY || e.touches?.[0]?.clientY || lightY) - rect.top;
+  }
+  
+  function tapHandler(e) {
+    const rect = gc.getBoundingClientRect();
+    const ex = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const ey = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+    if (ex < 80 && ey < 40) { cleanup(); closeGame(); return; }
+  }
+  
+  gameOverlay.addEventListener('mousemove', moveLight);
+  gameOverlay.addEventListener('touchmove', moveLight, {passive:false});
+  gameOverlay.addEventListener('touchstart', moveLight, {passive:false});
+  gameOverlay.addEventListener('click', tapHandler);
+  
+  function tick() {
+    if (!activeGame) { cleanup(); return; }
+    gt++;
+    
+    // Pure black
+    gx.fillStyle = '#020408';
+    gx.fillRect(0,0,gw,gh);
+    
+    // Anglerfish light cone
+    const lightR = 70 + Math.sin(gt*0.05)*10;
+    const grad = gx.createRadialGradient(lightX, lightY, 0, lightX, lightY, lightR);
+    grad.addColorStop(0, 'rgba(100,200,255,0.25)');
+    grad.addColorStop(0.5, 'rgba(60,140,200,0.08)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    gx.fillStyle = grad;
+    gx.fillRect(0,0,gw,gh);
+    
+    // Small glow dot at light center
+    gx.fillStyle = '#8cf';
+    gx.globalAlpha = 0.8;
+    gx.beginPath(); gx.arc(lightX, lightY, 3, 0, Math.PI*2); gx.fill();
+    gx.globalAlpha = 1;
+    
+    // Creatures
+    for (const cr of creatures) {
+      const dx = lightX-cr.x, dy = lightY-cr.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      
+      if (dist < lightR * 0.7 && !cr.revealed) {
+        cr.revealed = true;
+        cr.revealT = gt;
+        found++;
+        score += 100;
+      }
+      
+      if (dist < lightR) {
+        // In light — draw creature
+        const brightness = Math.max(0, 1 - dist/lightR);
+        gx.globalAlpha = brightness * 0.8;
+        
+        if (cr.revealed) {
+          // Revealed glow
+          gx.fillStyle = `hsl(${cr.hue},70%,60%)`;
+          const shimmer = Math.sin(gt*0.1+cr.x)*2;
+          if (cr.type === 0) {
+            // Fish
+            gx.beginPath(); gx.ellipse(cr.x, cr.y, cr.r, cr.r*0.6, 0, 0, Math.PI*2); gx.fill();
+            gx.beginPath(); gx.moveTo(cr.x+cr.r, cr.y); gx.lineTo(cr.x+cr.r+8, cr.y-5); gx.lineTo(cr.x+cr.r+8, cr.y+5); gx.fill();
+          } else if (cr.type === 1) {
+            // Crab
+            gx.fillRect(cr.x-cr.r, cr.y-cr.r*0.4, cr.r*2, cr.r*0.8);
+            gx.fillRect(cr.x-cr.r-5+shimmer, cr.y-cr.r*0.4-3, 5, 4);
+            gx.fillRect(cr.x+cr.r-shimmer, cr.y-cr.r*0.4-3, 5, 4);
+          } else {
+            // Starfish
+            for (let a = 0; a < 5; a++) {
+              const ang = a*Math.PI*2/5 - Math.PI/2;
+              gx.beginPath();
+              gx.moveTo(cr.x, cr.y);
+              gx.lineTo(cr.x+Math.cos(ang)*(cr.r+shimmer), cr.y+Math.sin(ang)*(cr.r+shimmer));
+              gx.lineTo(cr.x+Math.cos(ang+0.3)*cr.r*0.4, cr.y+Math.sin(ang+0.3)*cr.r*0.4);
+              gx.fill();
+            }
+          }
+        } else {
+          // Hint silhouette
+          gx.fillStyle = 'rgba(100,160,200,0.15)';
+          gx.beginPath(); gx.arc(cr.x, cr.y, cr.r*0.5, 0, Math.PI*2); gx.fill();
+        }
+        gx.globalAlpha = 1;
+      }
+    }
+    
+    // Ambient particles in light
+    for (let i = 0; i < 3; i++) {
+      const px = lightX + (Math.random()-0.5)*lightR*2;
+      const py = lightY + (Math.random()-0.5)*lightR*2;
+      const dd = Math.sqrt((px-lightX)**2+(py-lightY)**2);
+      if (dd < lightR) {
+        gx.globalAlpha = 0.15*(1-dd/lightR);
+        gx.fillStyle = '#8cf';
+        gx.fillRect(px, py, 1, 1);
+        gx.globalAlpha = 1;
+      }
+    }
+    
+    // HUD
+    gx.fillStyle = '#8cf';
+    gx.font = '16px Courier New';
+    gx.textAlign = 'center';
+    gx.fillText('FOUND: ' + found + '/' + total + '  SCORE: ' + score, gw/2, 30);
+    
+    if (found >= total) {
+      gx.fillStyle = '#60c4ff';
+      gx.font = '24px Courier New';
+      gx.fillText('ALL FOUND!', gw/2, gh/2);
+      if (gt - creatures[total-1].revealT > 120) { cleanup(); closeGame(); }
+    }
+    
+    gx.fillStyle = '#555';
+    gx.font = '12px Courier New';
+    gx.textAlign = 'left';
+    gx.fillText('✕ back', 10, 24);
+    
+    raf = requestAnimationFrame(tick);
+  }
+  
+  function cleanup() {
+    gameOverlay.removeEventListener('mousemove', moveLight);
+    gameOverlay.removeEventListener('touchmove', moveLight);
+    gameOverlay.removeEventListener('touchstart', moveLight);
+    gameOverlay.removeEventListener('click', tapHandler);
+    cancelAnimationFrame(raf);
+  }
+  tick();
+}
 </script>
 </body>
 </html>
