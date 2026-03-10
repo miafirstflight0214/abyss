@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abyss</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0c10;
+    color: #c8c8c8;
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Canvas scene */
+  #scene-wrap {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 24px;
+    position: relative;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(100,180,255,0.1);
+    box-shadow: 0 0 60px rgba(30,80,140,0.15);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  /* Agent cards */
+  #cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 800px;
+    margin: 20px auto 40px;
+    padding: 0 12px;
+  }
+  .card {
+    background: #0e1118;
+    border-radius: 4px;
+    padding: 16px;
+    border: 1px solid rgba(100,180,255,0.1);
+    transition: border-color 0.3s;
+  }
+  .card:hover { border-color: rgba(100,180,255,0.25); }
+  .card-name {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+  .card-name.mia { color: #b48edd; }
+  .card-name.nemo { color: #ff9654; }
+  .card-name.nova { color: #4eb8ff; }
+  .card-status {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  .card-task {
+    font-size: 11px;
+    color: #555;
+  }
+
+  /* Title */
+  #title {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(100,180,255,0.3);
+    margin-top: 24px;
+  }
+
+  @media (max-width: 600px) {
+    #cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="title">Abyss</div>
+
+<div id="scene-wrap">
+  <canvas id="scene" width="400" height="250"></canvas>
+</div>
+
+<div id="cards">
+  <div class="card">
+    <div class="card-name mia">🪼 Mia</div>
+    <div class="card-status">&gt; idle</div>
+    <div class="card-task">_ drifting</div>
+  </div>
+  <div class="card">
+    <div class="card-name nemo">🐠 Nemo</div>
+    <div class="card-status">&gt; idle</div>
+    <div class="card-task">_ exploring</div>
+  </div>
+  <div class="card">
+    <div class="card-name nova">🐡 Nova</div>
+    <div class="card-status">&gt; idle</div>
+    <div class="card-task">_ waiting</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+
+// Colors
+const DEEP_BG = '#080b12';
+const MIA_COLOR = '#b48edd';   // jellyfish - purple
+const NEMO_COLOR = '#ff9654';  // clownfish - orange
+const NOVA_COLOR = '#4eb8ff';  // anglerfish - blue
+
+// Particles (bubbles, plankton)
+const particles = [];
+for (let i = 0; i < 40; i++) {
+  particles.push({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 1.5 + 0.5,
+    speed: Math.random() * 0.3 + 0.1,
+    alpha: Math.random() * 0.4 + 0.1,
+    drift: Math.random() * 0.5 - 0.25,
+  });
+}
+
+// Creatures
+const mia = {
+  x: W * 0.25, y: H * 0.4,
+  baseY: H * 0.4,
+  phase: 0,
+  // Pixel jellyfish
+  draw(ctx) {
+    const px = 3;
+    const cx = Math.floor(this.x);
+    const cy = Math.floor(this.y);
+    ctx.fillStyle = MIA_COLOR;
+    // Bell (dome shape)
+    const bell = [
+      [0,0,1,1,1,1,0,0],
+      [0,1,1,1,1,1,1,0],
+      [1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1],
+      [0,1,1,1,1,1,1,0],
+    ];
+    const bw = bell[0].length;
+    const bh = bell.length;
+    for (let r = 0; r < bh; r++) {
+      for (let c = 0; c < bw; c++) {
+        if (bell[r][c]) {
+          ctx.globalAlpha = 0.7 + Math.sin(this.phase + r * 0.3) * 0.2;
+          ctx.fillRect(cx - (bw/2)*px + c*px, cy - bh*px + r*px, px, px);
+        }
+      }
+    }
+    // Tentacles
+    ctx.globalAlpha = 0.4;
+    const tentaclePhase = this.phase;
+    for (let t = 0; t < 4; t++) {
+      const tx = cx - 4*px + t * 3*px;
+      for (let i = 0; i < 5; i++) {
+        const ox = Math.sin(tentaclePhase + t + i * 0.5) * 2;
+        ctx.fillRect(tx + ox, cy + i*px, px, px);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+};
+
+const nemo = {
+  x: W * 0.65, y: H * 0.6,
+  baseY: H * 0.6,
+  phase: 0,
+  dir: 1,
+  draw(ctx) {
+    const px = 3;
+    const cx = Math.floor(this.x);
+    const cy = Math.floor(this.y);
+    // Simple pixel clownfish
+    const d = this.dir;
+    ctx.fillStyle = NEMO_COLOR;
+    // Body
+    const body = [
+      [0,0,1,1,1,0],
+      [0,1,1,1,1,1],
+      [1,1,1,1,1,1],
+      [0,1,1,1,1,1],
+      [0,0,1,1,1,0],
+    ];
+    // White stripes
+    const stripes = [
+      [0,0,0,0,0,0],
+      [0,0,0,1,0,0],
+      [0,0,0,1,0,0],
+      [0,0,0,1,0,0],
+      [0,0,0,0,0,0],
+    ];
+    const bw = body[0].length;
+    const bh = body.length;
+    for (let r = 0; r < bh; r++) {
+      for (let c = 0; c < bw; c++) {
+        const dc = d > 0 ? c : (bw - 1 - c);
+        if (body[r][c]) {
+          ctx.fillStyle = stripes[r][c] ? '#ffffff' : NEMO_COLOR;
+          ctx.fillRect(cx - (bw/2)*px + dc*px, cy - (bh/2)*px + r*px, px, px);
+        }
+      }
+    }
+    // Eye
+    ctx.fillStyle = '#111';
+    const eyeX = d > 0 ? cx + px : cx - 2*px;
+    ctx.fillRect(eyeX, cy - px, px, px);
+    // Tail
+    ctx.fillStyle = NEMO_COLOR;
+    const tailX = d > 0 ? cx - (bw/2)*px - px : cx + (bw/2)*px;
+    ctx.fillRect(tailX, cy - px, px, px*2 + Math.sin(this.phase)*px);
+  }
+};
+
+const nova = {
+  x: W * 0.5, y: H * 0.75,
+  baseY: H * 0.75,
+  phase: 0,
+  draw(ctx) {
+    const px = 3;
+    const cx = Math.floor(this.x);
+    const cy = Math.floor(this.y);
+    // Anglerfish body
+    ctx.fillStyle = '#1a3050';
+    const body = [
+      [0,0,0,1,1,1,0,0],
+      [0,0,1,1,1,1,1,0],
+      [0,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,0],
+      [0,1,1,1,1,1,0,0],
+      [0,0,1,1,1,0,0,0],
+    ];
+    const bw = body[0].length;
+    const bh = body.length;
+    for (let r = 0; r < bh; r++) {
+      for (let c = 0; c < bw; c++) {
+        if (body[r][c]) {
+          ctx.fillRect(cx - (bw/2)*px + c*px, cy - (bh/2)*px + r*px, px, px);
+        }
+      }
+    }
+    // Eye
+    ctx.fillStyle = NOVA_COLOR;
+    ctx.fillRect(cx + px, cy - 2*px, px, px);
+    // Lure (antenna with glowing tip)
+    ctx.fillStyle = '#1a3050';
+    ctx.fillRect(cx + 2*px, cy - (bh/2)*px - px, px, px);
+    ctx.fillRect(cx + 3*px, cy - (bh/2)*px - 2*px, px, px);
+    // Glowing orb
+    const glowAlpha = 0.5 + Math.sin(this.phase * 2) * 0.4;
+    ctx.globalAlpha = glowAlpha;
+    ctx.fillStyle = NOVA_COLOR;
+    ctx.fillRect(cx + 4*px, cy - (bh/2)*px - 3*px, px*2, px*2);
+    // Glow effect
+    ctx.globalAlpha = glowAlpha * 0.3;
+    ctx.beginPath();
+    ctx.arc(cx + 5*px, cy - (bh/2)*px - 2*px, 8, 0, Math.PI * 2);
+    ctx.fillStyle = NOVA_COLOR;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // Teeth
+    ctx.fillStyle = '#aaa';
+    ctx.fillRect(cx - (bw/2)*px, cy, px, px);
+    ctx.fillRect(cx - (bw/2)*px + 2*px, cy + px, px, px);
+  }
+};
+
+// Seabed
+function drawSeabed() {
+  ctx.fillStyle = '#0c0f18';
+  for (let x = 0; x < W; x += 3) {
+    const h = 8 + Math.sin(x * 0.05) * 4 + Math.sin(x * 0.13) * 3;
+    ctx.fillRect(x, H - h, 3, h);
+  }
+  // Some rocks
+  ctx.fillStyle = '#111520';
+  [[30, 12], [120, 8], [250, 15], [340, 10]].forEach(([rx, rh]) => {
+    ctx.fillRect(rx, H - rh - 6, 20, rh);
+  });
+}
+
+// Light rays from above
+function drawLightRays() {
+  ctx.globalAlpha = 0.02;
+  ctx.fillStyle = '#4080c0';
+  for (let i = 0; i < 3; i++) {
+    const x = 80 + i * 120;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x - 30, H);
+    ctx.lineTo(x + 30, H);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+let frame = 0;
+
+function update() {
+  frame++;
+  const t = frame * 0.02;
+
+  // Mia: gentle float
+  mia.phase = t;
+  mia.y = mia.baseY + Math.sin(t * 0.8) * 8;
+  mia.x += Math.sin(t * 0.3) * 0.2;
+  if (mia.x < 30) mia.x = 30;
+  if (mia.x > W - 30) mia.x = W - 30;
+
+  // Nemo: swim back and forth
+  nemo.phase = t * 2;
+  nemo.x += nemo.dir * 0.4;
+  nemo.y = nemo.baseY + Math.sin(t * 1.2) * 4;
+  if (nemo.x > W - 40) { nemo.dir = -1; }
+  if (nemo.x < 40) { nemo.dir = 1; }
+
+  // Nova: slow lurk at bottom
+  nova.phase = t;
+  nova.y = nova.baseY + Math.sin(t * 0.4) * 3;
+  nova.x += Math.sin(t * 0.15) * 0.1;
+
+  // Particles
+  particles.forEach(p => {
+    p.y -= p.speed;
+    p.x += p.drift * Math.sin(t + p.x);
+    if (p.y < -5) { p.y = H + 5; p.x = Math.random() * W; }
+  });
+}
+
+function draw() {
+  // Background gradient (deep ocean)
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#0c1220');
+  grad.addColorStop(0.5, '#080e18');
+  grad.addColorStop(1, '#060a12');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  drawLightRays();
+
+  // Particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = '#6090b0';
+    ctx.fillRect(Math.floor(p.x), Math.floor(p.y), Math.ceil(p.r), Math.ceil(p.r));
+  });
+  ctx.globalAlpha = 1;
+
+  drawSeabed();
+
+  // Draw creatures
+  mia.draw(ctx);
+  nemo.draw(ctx);
+  nova.draw(ctx);
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html>
