@@ -60,21 +60,21 @@
 <div id="cards">
   <div class="card">
     <div class="card-head"><span class="card-dot active" style="background:#c4a0ee"></span><span class="card-name mia">Mia</span></div>
-    <div class="card-role">主脑 · main agent</div>
+    <div class="card-role">CLASS: Coordinator</div>
     <div class="card-status">&gt; working</div>
-    <div class="card-task">_ 汇总信息，协调一切</div>
+    <div class="card-task">_ sees all, knows all, drifts above</div>
   </div>
   <div class="card">
     <div class="card-head"><span class="card-dot active" style="background:#ffab70"></span><span class="card-name nemo">Nemo</span></div>
-    <div class="card-role">生活助手 · life agent</div>
+    <div class="card-role">CLASS: Companion</div>
     <div class="card-status">&gt; idle</div>
-    <div class="card-task">_ 日常陪伴，闲聊游荡</div>
+    <div class="card-task">_ vibes only, good at snacks</div>
   </div>
   <div class="card">
     <div class="card-head"><span class="card-dot active" style="background:#60c4ff"></span><span class="card-name nova">Nova</span></div>
-    <div class="card-role">代码搭档 · code agent</div>
+    <div class="card-role">CLASS: Hunter</div>
     <div class="card-status">&gt; working</div>
-    <div class="card-task">_ 精准捕猎，解决问题</div>
+    <div class="card-task">_ lurks deep, strikes precise</div>
   </div>
 </div>
 <div id="footer">THREE AGENTS · ONE ABYSS</div>
@@ -90,10 +90,10 @@ const PAL = {
   mia:     '#c4a0ee', mia2: '#a080cc', mia3: '#8060aa', miaGlow: '#d4b0ff',
   nemo:    '#ffab70', nemo2: '#ff8844', nemoW: '#fff8f0', nemoD: '#cc6630',
   nova:    '#60c4ff', nova2: '#152540', nova3: '#1a3050', novaGlow: '#80d8ff',
-  seabed:  '#0c1020', seabed2: '#101428', rock: '#141830',
-  coral1:  '#2a1828', coral2: '#1a2830', coral3: '#281a28',
+  seabed:  '#141830', seabed2: '#1a2038', rock: '#1c2240',
+  coral1:  '#3a2838', coral2: '#2a3840', coral3: '#382a38',
   anemone: '#c06080', anemone2: '#e08090',
-  kelp:    '#1a3020', kelp2: '#203828',
+  kelp:    '#254030', kelp2: '#2a4838',
   sand:    '#1a1820',
 };
 
@@ -114,8 +114,8 @@ for (let i = 0; i < 80; i++) {
   parts.push({
     x: Math.random()*W, y: Math.random()*H,
     s: Math.random()*1.2+0.5, spd: Math.random()*0.15+0.03,
-    a: Math.random()*0.15+0.02, dr: Math.random()*0.2-0.1,
-    c: ['#2a5070','#3a6080','#205048','#4a3870','#305060'][Math.floor(Math.random()*5)],
+    a: Math.random()*0.2+0.05, dr: Math.random()*0.2-0.1,
+    c: ['#3a6888','#4a7898','#2a6060','#5a4888','#3a6878'][Math.floor(Math.random()*5)],
   });
 }
 
@@ -147,7 +147,7 @@ for (let i = 0; i < 12; i++) {
     x: Math.random()*W,
     h: 15+Math.random()*30,
     w: 4+Math.random()*8,
-    c: ['#0e1420','#101628','#0c1220','#12162a'][Math.floor(Math.random()*4)],
+    c: ['#162030','#182438','#142030','#1a2840'][Math.floor(Math.random()*4)],
     type: Math.floor(Math.random()*3),
   });
 }
@@ -167,18 +167,18 @@ for (let i = 0; i < 10; i++) {
 function drawBg(t) {
   // Deep gradient
   const g = X.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#0a1228');
-  g.addColorStop(0.3,'#081020');
-  g.addColorStop(0.6,'#060c18');
-  g.addColorStop(1,'#040810');
+  g.addColorStop(0,'#122040');
+  g.addColorStop(0.3,'#0e1830');
+  g.addColorStop(0.6,'#0a1224');
+  g.addColorStop(1,'#080e1c');
   X.fillStyle = g; X.fillRect(0,0,W,H);
 
   // Subtle caustics / light shafts
   for (let i = 0; i < 5; i++) {
     const lx = 40 + i*120 + Math.sin(t*0.08+i*2)*15;
-    const la = 0.008 + Math.sin(t*0.15+i*1.2)*0.004;
+    const la = 0.025 + Math.sin(t*0.15+i*1.2)*0.012;
     X.globalAlpha = la;
-    X.fillStyle = '#3060a0';
+    X.fillStyle = '#4070b0';
     X.beginPath();
     X.moveTo(lx,0); X.lineTo(lx-40,H); X.lineTo(lx+30,H); X.lineTo(lx+8,0);
     X.fill();
@@ -222,7 +222,7 @@ function drawKelp(t) {
     let sy = H - 15;
     for (let i = 0; i < k.segs; i++) {
       const sway = Math.sin(t*0.5 + k.ph + i*0.4) * (1 + i*0.5);
-      X.globalAlpha = 0.4 - i*0.025;
+      X.globalAlpha = 0.55 - i*0.03;
       X.fillStyle = k.c;
       X.fillRect(k.x + sway, sy - i*6, k.thick*P, 6);
       // Leaf every 2 segments
