@@ -337,14 +337,25 @@ function drawStation(sx, color, active, t) {
   }
 }
 
+// ── Agent positions (smooth interpolation) ──
+const agentPos = {
+  mia:  { x: STX.mia, y: FLOOR-38, tx: STX.mia, ty: FLOOR-38 },
+  nemo: { x: STX.nemo, y: FLOOR-38, tx: STX.nemo, ty: FLOOR-38 },
+  nova: { x: STX.nova, y: FLOOR-38, tx: STX.nova, ty: FLOOR-38 },
+};
+// Working patrol ranges (floating above stations)
+const WORK_Y = FLOOR - 80; // working hover height
+const IDLE_Y = FLOOR - 38; // parked at station
+
 // ── Mia: jellyfish (larger, more detailed) ──
 function drawMia(t) {
-  const sx = STX.mia, cy = FLOOR - 38;
+  const pos = agentPos.mia;
+  const sx = Math.floor(pos.x), cy = Math.floor(pos.y);
   const pulse = Math.sin(t*1.0);
   const working = agents.mia.state === 'working';
 
   // Glow halo
-  X.globalAlpha = 0.05 + (working ? pulse*0.02 : 0);
+  X.globalAlpha = 0.06 + (working ? pulse*0.03 : 0);
   X.beginPath(); X.arc(sx, cy-P*4, 24, 0, Math.PI*2);
   X.fillStyle = PAL.miaGlow; X.fill();
   X.globalAlpha = 1;
@@ -361,15 +372,13 @@ function drawMia(t) {
     [0,1,1,1,1,1,1,1,1,1,1,1,1,0],
     [0,0,4,0,4,0,4,0,4,0,4,0,4,0],
   ];
-  const cmap = {
-    1: PAL.mia3, 2: PAL.mia2, 3: PAL.mia, 4: PAL.mia2,
-  };
+  const cmap = { 1: PAL.mia3, 2: PAL.mia2, 3: PAL.mia, 4: PAL.mia2 };
   const bw = bell[0].length, bh = bell.length;
   for (let r = 0; r < bh; r++) {
     for (let c = 0; c < bw; c++) {
       if (!bell[r][c]) continue;
-      ctx_a = 0.5 + (bell[r][c]===3 ? 0.3 : 0) + (working ? pulse*0.08 : 0);
-      X.globalAlpha = Math.min(1, ctx_a);
+      const a = 0.65 + (bell[r][c]===3 ? 0.3 : 0) + (working ? pulse*0.05 : 0);
+      X.globalAlpha = Math.min(1, a);
       X.fillStyle = cmap[bell[r][c]];
       X.fillRect(sx - (bw/2)*P + c*P, cy - bh*P + r*P, P, P);
     }
@@ -381,30 +390,28 @@ function drawMia(t) {
     const tx = sx - (tCount-1)*P + tt*P*2;
     for (let i = 0; i < tLens[tt]; i++) {
       const ox = Math.sin(t + tt*0.6 + i*0.35) * (1.5 + i*0.3);
-      X.globalAlpha = 0.3 - i*0.025;
+      X.globalAlpha = 0.4 - i*0.03;
       X.fillStyle = (i%3===0) ? PAL.miaGlow : PAL.mia2;
       X.fillRect(tx + ox, cy + i*P, P, P);
     }
   }
   X.globalAlpha = 1;
 
-  // Eyes (two small dots)
+  // Eyes
   X.fillStyle = '#f0e8ff';
-  X.globalAlpha = 0.7;
+  X.globalAlpha = 0.8;
   X.fillRect(sx - P*2, cy - P*5, P, P);
   X.fillRect(sx + P, cy - P*5, P, P);
   X.globalAlpha = 1;
+
+  return { x: sx, y: cy };
 }
 
-// ── Nemo: clownfish (bigger, 2-stripe) ──
+// ── Nemo: clownfish ──
 function drawNemo(t) {
-  const idle = agents.nemo.state === 'idle';
-  const sx = STX.nemo;
-  // If idle, float slightly above station; if working, sit at station
-  const ny = idle ? FLOOR - 50 + Math.sin(t*0.6)*6 : FLOOR - 38;
-  const nx = idle ? sx + Math.sin(t*0.3)*8 : sx;
+  const pos = agentPos.nemo;
+  const nx = Math.floor(pos.x), ny = Math.floor(pos.y);
 
-  // Clownfish sprite (facing right)
   const fish = [
     [0,0,0,0,0,1,1,0,0,0,0,0],
     [0,0,0,0,1,1,1,1,0,0,0,0],
@@ -418,31 +425,31 @@ function drawNemo(t) {
     [0,0,0,0,1,1,1,1,0,0,0,0],
     [0,0,0,0,0,1,1,0,0,0,0,0],
   ];
-  // 1=orange, 2=white, 3=dark orange, 4=fin, 5=eye
   const cm = { 1:PAL.nemo, 2:PAL.nemoW, 3:PAL.nemoD, 4:'#ff9060', 5:'#1a1a1a' };
   const bw = fish[0].length, bh = fish.length;
   for (let r = 0; r < bh; r++) {
     for (let c = 0; c < bw; c++) {
       if (!fish[r][c]) continue;
       X.fillStyle = cm[fish[r][c]];
-      X.fillRect(Math.floor(nx) - (bw/2)*P + c*P, Math.floor(ny) - (bh/2)*P + r*P, P, P);
+      X.fillRect(nx - (bw/2)*P + c*P, ny - (bh/2)*P + r*P, P, P);
     }
   }
 
   // Tail wag
   X.fillStyle = PAL.nemo;
-  const tailX = Math.floor(nx) - (bw/2)*P - P;
+  const tailX = nx - (bw/2)*P - P;
   const wagY = Math.sin(t*3)*P;
-  X.fillRect(tailX, Math.floor(ny) - P + wagY, P, P*3);
-  X.fillRect(tailX-P, Math.floor(ny) + wagY, P, P*2);
+  X.fillRect(tailX, ny - P + wagY, P, P*3);
+  X.fillRect(tailX-P, ny + wagY, P, P*2);
 
   // Idle: Zzz
+  const idle = agents.nemo.state === 'idle';
   if (idle) {
-    X.font = '8px Courier New';
-    X.globalAlpha = 0.25 + Math.sin(t*1.5)*0.1;
+    X.font = '9px Courier New';
+    X.globalAlpha = 0.35 + Math.sin(t*1.5)*0.1;
     X.fillStyle = PAL.nemo;
     X.fillText('z', nx+14, ny-8+Math.sin(t)*2);
-    X.globalAlpha = 0.18 + Math.sin(t*1.5+1)*0.08;
+    X.globalAlpha = 0.25 + Math.sin(t*1.5+1)*0.08;
     X.fillText('z', nx+20, ny-15+Math.sin(t+0.5)*2);
     X.globalAlpha = 1;
   }
@@ -450,9 +457,10 @@ function drawNemo(t) {
   return { x: nx, y: ny };
 }
 
-// ── Nova: anglerfish (bigger, menacing, glowing lure) ──
+// ── Nova: anglerfish ──
 function drawNova(t) {
-  const sx = STX.nova, cy = FLOOR - 36;
+  const pos = agentPos.nova;
+  const sx = Math.floor(pos.x), cy = Math.floor(pos.y);
   const working = agents.nova.state === 'working';
 
   const fish = [
@@ -466,7 +474,7 @@ function drawNova(t) {
     [0,0,0,0,0,2,1,1,1,1,1,0,0,0],
     [0,0,0,0,0,0,3,0,3,0,3,0,0,0],
   ];
-  const cm = { 1:PAL.nova3, 2:'#0e1828', 3:'#667', 4:PAL.nova };
+  const cm = { 1:PAL.nova3, 2:'#0e1828', 3:'#778', 4:PAL.nova };
   const bw = fish[0].length, bh = fish.length;
   for (let r = 0; r < bh; r++) {
     for (let c = 0; c < bw; c++) {
@@ -478,35 +486,35 @@ function drawNova(t) {
 
   // Fins
   X.fillStyle = PAL.nova3;
-  X.globalAlpha = 0.6;
+  X.globalAlpha = 0.7;
   const finSway = Math.sin(t*1.5);
   X.fillRect(sx - (bw/2)*P - P, cy + P + finSway, P, P*3);
   X.fillRect(sx + P*3, cy - (bh/2)*P + P*2, P*2, P);
   X.globalAlpha = 1;
 
-  // Lure antenna (curved)
+  // Lure antenna
   const antBase = { x: sx + P*2, y: cy - (bh/2)*P };
   X.fillStyle = PAL.nova3;
   const pts = [[0,-P],[P,-P*2],[P*2,-P*3],[P*3,-P*4],[P*4,-P*4]];
   pts.forEach(([ox,oy]) => X.fillRect(antBase.x+ox, antBase.y+oy, P, P));
 
   // Glowing orb
-  const gInt = working ? 0.6+Math.sin(t*2.5)*0.35 : 0.15+Math.sin(t*0.6)*0.1;
+  const gInt = working ? 0.7+Math.sin(t*2.5)*0.3 : 0.2+Math.sin(t*0.6)*0.1;
   const orbX = antBase.x + P*5, orbY = antBase.y - P*4;
   X.globalAlpha = gInt;
   X.fillStyle = PAL.novaGlow;
   X.fillRect(orbX, orbY, P*3, P*3);
-  // Inner glow
   X.globalAlpha = gInt*0.3;
   X.beginPath(); X.arc(orbX+P*1.5, orbY+P*1.5, 8, 0, Math.PI*2); X.fill();
   X.globalAlpha = gInt*0.08;
   X.beginPath(); X.arc(orbX+P*1.5, orbY+P*1.5, 18, 0, Math.PI*2); X.fill();
-  // Light cast on nearby area
   if (working) {
     X.globalAlpha = gInt*0.03;
     X.beginPath(); X.arc(orbX+P*1.5, orbY+P*1.5, 40, 0, Math.PI*2); X.fill();
   }
   X.globalAlpha = 1;
+
+  return { x: sx, y: cy };
 }
 
 // ── Speech bubble ──
@@ -541,16 +549,30 @@ function drawBubble(x, y, text, alpha) {
   X.restore();
 }
 
-// ── Name labels ──
-function drawLabels(nemoPos) {
-  X.font = '7px Courier New';
-  X.globalAlpha = 0.25;
+// ── Name labels (follow agent positions) ──
+function drawLabels(miaPos, nemoPos, novaPos, t) {
+  X.font = '9px Courier New';
+  X.textAlign = 'center';
+
+  X.globalAlpha = 0.5;
   X.fillStyle = PAL.mia;
-  X.fillText('Mia', STX.mia-7, FLOOR-60);
+  X.fillText('Mia', miaPos.x, miaPos.y - 24);
   X.fillStyle = PAL.nemo;
-  X.fillText('Nemo', nemoPos.x-9, nemoPos.y-16);
+  X.fillText('Nemo', nemoPos.x, nemoPos.y - 18);
   X.fillStyle = PAL.nova;
-  X.fillText('Nova', STX.nova-9, FLOOR-60);
+  X.fillText('Nova', novaPos.x, novaPos.y - 24);
+
+  // Status text under name
+  X.font = '7px Courier New';
+  X.globalAlpha = 0.3;
+  X.fillStyle = PAL.mia;
+  X.fillText(agents.mia.state === 'working' ? '● working' : '○ idle', miaPos.x, miaPos.y - 15);
+  X.fillStyle = PAL.nemo;
+  X.fillText(agents.nemo.state === 'working' ? '● working' : '○ idle', nemoPos.x, nemoPos.y - 10);
+  X.fillStyle = PAL.nova;
+  X.fillText(agents.nova.state === 'working' ? '● working' : '○ idle', novaPos.x, novaPos.y - 15);
+
+  X.textAlign = 'left';
   X.globalAlpha = 1;
 }
 
@@ -568,6 +590,24 @@ function update() {
     b.x += Math.sin(t*0.2+b.ph)*0.06;
     b.y += Math.cos(t*0.15+b.ph)*0.04;
   });
+
+  // Agent movement: working = float above station, idle = return to station
+  for (const [id, stx] of [['mia',STX.mia],['nemo',STX.nemo],['nova',STX.nova]]) {
+    const pos = agentPos[id];
+    const working = agents[id].state === 'working';
+    if (working) {
+      // Float above station with gentle movement
+      pos.tx = stx + Math.sin(t*0.25 + (id==='mia'?0:id==='nemo'?2:4)) * 25;
+      pos.ty = WORK_Y + Math.sin(t*0.4 + (id==='mia'?0:id==='nemo'?1.5:3)) * 15;
+    } else {
+      // Return to station
+      pos.tx = stx;
+      pos.ty = IDLE_Y;
+    }
+    // Smooth interpolation
+    pos.x += (pos.tx - pos.x) * 0.02;
+    pos.y += (pos.ty - pos.y) * 0.02;
+  }
 
   bubT++;
   if (bubT > 180) {
@@ -592,24 +632,24 @@ function draw() {
   drawSeabed();
   drawBioluminescence(t);
 
-  // Stations
+  // All 3 stations always visible
   drawStation(STX.mia, PAL.mia, agents.mia.state==='working', t);
+  drawStation(STX.nemo, PAL.nemo, agents.nemo.state==='working', t);
   drawStation(STX.nova, PAL.nova, agents.nova.state==='working', t);
-  if (agents.nemo.state==='working') drawStation(STX.nemo, PAL.nemo, true, t);
 
   // Agents
-  drawMia(t);
+  const mPos = drawMia(t);
   const nPos = drawNemo(t);
-  drawNova(t);
+  const vPos = drawNova(t);
 
   // Labels
-  drawLabels(nPos);
+  drawLabels(mPos, nPos, vPos, t);
 
   // Bubbles
-  for (const [id, pos] of [['mia',{x:STX.mia,y:FLOOR-70}],['nemo',{x:nPos.x,y:nPos.y-22}],['nova',{x:STX.nova,y:FLOOR-70}]]) {
+  for (const [id, pos] of [['mia',mPos],['nemo',nPos],['nova',vPos]]) {
     if (bubs[id]) {
       const fade = bubs[id].life < 25 ? bubs[id].life/25 : (bubs[id].life > 120 ? (140-bubs[id].life)/20 : 1);
-      drawBubble(pos.x, pos.y, bubs[id].text, fade);
+      drawBubble(pos.x, pos.y - 30, bubs[id].text, fade);
     }
   }
 }
