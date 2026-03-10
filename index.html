@@ -132,10 +132,15 @@ for (let i = 0; i < 20; i++) {
 }
 
 // ── Speech ──
-const MSGS = {
-  mia:  ['Summarizing...','Coordinating.','Noted.','On it.','Checking logs.','Syncing.'],
-  nemo: ['~♪','zzZ','...','*yawn*','hmm?','nice day~'],
-  nova: ['Fixed.','Deploying.','git push.','Done.','Debugging...','Refactoring.'],
+const MSGS_WORK = {
+  mia:  ['Summarizing...','Coordinating.','Noted.','On it.','Checking logs.','Syncing agents.'],
+  nemo: ['Drafting reply...','Searching~','Looking up...','On it!','Checking...'],
+  nova: ['Deploying.','git push.','Debugging...','Refactoring.','Fixed.','Building...'],
+};
+const MSGS_IDLE = {
+  mia:  ['Stretching~','*floats*','Hmm...','Taking a break.','~♪'],
+  nemo: ['*yawn*','~♪','nice day~','*exploring*','Ooh, shiny!','...zzZ'],
+  nova: ['...','*lurking*','Scanning.','*glows*','Patrolling.'],
 };
 const bubs = { mia:null, nemo:null, nova:null };
 let bubT = 0;
@@ -338,14 +343,15 @@ function drawStation(sx, color, active, t) {
 }
 
 // ── Agent positions (smooth interpolation) ──
+const WORK_Y = FLOOR - 80;
+const IDLE_Y = FLOOR - 38;
+
+// ── Agent positions (smooth interpolation) ──
 const agentPos = {
-  mia:  { x: STX.mia, y: FLOOR-38, tx: STX.mia, ty: FLOOR-38 },
-  nemo: { x: STX.nemo, y: FLOOR-38, tx: STX.nemo, ty: FLOOR-38 },
-  nova: { x: STX.nova, y: FLOOR-38, tx: STX.nova, ty: FLOOR-38 },
+  mia:  { x: STX.mia, y: IDLE_Y, tx: STX.mia, ty: IDLE_Y, wpTimer: 0 },
+  nemo: { x: STX.nemo, y: IDLE_Y, tx: STX.nemo, ty: IDLE_Y, wpTimer: 0 },
+  nova: { x: STX.nova, y: IDLE_Y, tx: STX.nova, ty: IDLE_Y, wpTimer: 0 },
 };
-// Working patrol ranges (floating above stations)
-const WORK_Y = FLOOR - 80; // working hover height
-const IDLE_Y = FLOOR - 38; // parked at station
 
 // ── Mia: jellyfish (larger, more detailed) ──
 function drawMia(t) {
@@ -589,47 +595,55 @@ function update() {
     b.y += Math.cos(t*0.15+b.ph)*0.04;
   });
 
-  // Agent movement: working = at station, idle = free roam
+  // Agent movement: working = at station, idle = waypoint roaming
   for (const [id, stx] of [['mia',STX.mia],['nemo',STX.nemo],['nova',STX.nova]]) {
     const pos = agentPos[id];
     const working = agents[id].state === 'working';
     if (working) {
-      // Stay at station
       pos.tx = stx;
       pos.ty = IDLE_Y;
     } else {
-      // Free roam — wander around the scene
-      pos.tx = stx + Math.sin(t*0.15 + (id==='mia'?0:id==='nemo'?2:4)) * 60
-                    + Math.sin(t*0.07 + (id==='mia'?1:id==='nemo'?3:5)) * 30;
-      pos.ty = 40 + Math.sin(t*0.2 + (id==='mia'?0:id==='nemo'?1.5:3)) * 40
-                   + Math.cos(t*0.12 + (id==='mia'?2:id==='nemo'?0:1)) * 30;
-      // Clamp to scene
-      pos.tx = Math.max(30, Math.min(W-30, pos.tx));
-      pos.ty = Math.max(30, Math.min(FLOOR-60, pos.ty));
+      // Waypoint roaming: pick a new random target when close or timer expires
+      pos.wpTimer--;
+      const dx = pos.tx - pos.x, dy = pos.ty - pos.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 8 || pos.wpTimer <= 0) {
+        // New random waypoint within scene bounds
+        pos.tx = 40 + Math.random() * (W - 80);
+        pos.ty = 30 + Math.random() * (FLOOR - 90);
+        pos.wpTimer = 100 + Math.floor(Math.random() * 150); // 2-5 seconds
+      }
     }
-    // Smooth interpolation
-    pos.x += (pos.tx - pos.x) * 0.02;
-    pos.y += (pos.ty - pos.y) * 0.02;
+    // Smooth interpolation — different speeds for working vs idle
+    const spd = working ? 0.03 : 0.015;
+    pos.x += (pos.tx - pos.x) * spd;
+    pos.y += (pos.ty - pos.y) * spd;
   }
 
-  // State switching: each agent randomly toggles between working/idle
+  // State switching
   for (const id of ['mia','nemo','nova']) {
     agents[id].timer--;
     if (agents[id].timer <= 0) {
-      agents[id].state = agents[id].state === 'working' ? 'idle' : 'working';
-      // Random duration: working 8-20s, idle 5-12s (at 50fps)
+      const wasWorking = agents[id].state === 'working';
+      agents[id].state = wasWorking ? 'idle' : 'working';
       const isWork = agents[id].state === 'working';
       agents[id].timer = Math.floor((isWork ? 400+Math.random()*600 : 250+Math.random()*350));
+      // Show a state-change bubble
+      const msgs = isWork ? MSGS_WORK[id] : MSGS_IDLE[id];
+      bubs[id] = { text: msgs[Math.floor(Math.random()*msgs.length)], life: 120 };
     }
   }
 
+  // Random bubbles (state-aware)
   bubT++;
-  if (bubT > 180) {
+  if (bubT > 200) {
     bubT = 0;
     const ids = ['mia','nemo','nova'];
     const pick = ids[Math.floor(Math.random()*3)];
-    const msgs = MSGS[pick];
-    bubs[pick] = { text: msgs[Math.floor(Math.random()*msgs.length)], life: 140 };
+    if (!bubs[pick]) {
+      const msgs = agents[pick].state === 'working' ? MSGS_WORK[pick] : MSGS_IDLE[pick];
+      bubs[pick] = { text: msgs[Math.floor(Math.random()*msgs.length)], life: 120 };
+    }
   }
   for (const id of ['mia','nemo','nova']) {
     if (bubs[id]) { bubs[id].life--; if (bubs[id].life<=0) bubs[id]=null; }
