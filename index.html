@@ -47,9 +47,9 @@
   .card-name.mia { color: #c4a0ee; }
   .card-name.nemo { color: #ffab70; }
   .card-name.nova { color: #60c4ff; }
-  .card-role { font-size: 9px; color: #3a3a44; margin-bottom: 6px; letter-spacing: 0.06em; }
-  .card-status { font-size: 10px; color: #4a4a55; }
-  .card-task { font-size: 10px; color: #353540; margin-top: 2px; }
+  .card-role { font-size: 9px; color: #5a5a68; margin-bottom: 6px; letter-spacing: 0.06em; }
+  .card-status { font-size: 10px; color: #7a7a88; }
+  .card-task { font-size: 10px; color: #555568; margin-top: 2px; }
   #title { font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(80,140,200,0.2); margin-top: 20px; }
   #footer { font-size: 8px; letter-spacing: 0.2em; color: rgba(80,140,200,0.1); margin-bottom: 20px; }
   @media (max-width: 600px) { #cards { grid-template-columns: 1fr; padding: 0 16px; } }
@@ -174,14 +174,14 @@ function drawBg(t) {
   g.addColorStop(1,'#080e1c');
   X.fillStyle = g; X.fillRect(0,0,W,H);
 
-  // Volumetric god rays — diverging from a sun point above
-  const sunX = W * 0.45, sunY = -40;
+  // Volumetric god rays — diverging from a sun point above, slowly drifting
+  const sunX = W * 0.45 + Math.sin(t*0.04)*30, sunY = -40;
   const rayCount = 8;
   for (let i = 0; i < rayCount; i++) {
     const baseAngle = -0.6 + (i / rayCount) * 1.2;
-    const angle = baseAngle + Math.sin(t*0.06 + i*1.7)*0.04;
-    const width = 12 + Math.sin(t*0.1+i*2.3)*5;
-    const alpha = 0.02 + Math.sin(t*0.12+i*1.1)*0.01;
+    const angle = baseAngle + Math.sin(t*0.03 + i*1.7)*0.08;
+    const width = 12 + Math.sin(t*0.05+i*2.3)*6;
+    const alpha = 0.025 + Math.sin(t*0.07+i*1.1)*0.012;
     // Fade with depth
     const gRay = X.createLinearGradient(sunX, 0, sunX + Math.sin(angle)*H, H);
     gRay.addColorStop(0, 'rgba(80,140,200,' + (alpha*2) + ')');
