@@ -342,15 +342,24 @@ function drawStation(sx, color, active, t) {
   }
 }
 
-// ── Agent positions (smooth interpolation) ──
+// ── Agent positions & velocity ──
 const WORK_Y = FLOOR - 80;
 const IDLE_Y = FLOOR - 38;
 
-// ── Agent positions (smooth interpolation) ──
 const agentPos = {
-  mia:  { x: STX.mia, y: IDLE_Y, tx: STX.mia, ty: IDLE_Y, wpTimer: 0 },
-  nemo: { x: STX.nemo, y: IDLE_Y, tx: STX.nemo, ty: IDLE_Y, wpTimer: 0 },
-  nova: { x: STX.nova, y: IDLE_Y, tx: STX.nova, ty: IDLE_Y, wpTimer: 0 },
+  mia:  { x: STX.mia, y: IDLE_Y, vx: 0, vy: 0, tx: STX.mia, ty: IDLE_Y, wpTimer: 0 },
+  nemo: { x: STX.nemo, y: IDLE_Y, vx: 0, vy: 0, tx: STX.nemo, ty: IDLE_Y, wpTimer: 0 },
+  nova: { x: STX.nova, y: IDLE_Y, vx: 0, vy: 0, tx: STX.nova, ty: IDLE_Y, wpTimer: 0 },
+};
+
+// Swimming characteristics per creature
+const SWIM = {
+  // Mia (jellyfish): pulsing propulsion — bursts then coasts
+  mia:  { accel: 0.003, drag: 0.97, jitter: 0.3, bob: 0.8, bobFreq: 1.2 },
+  // Nemo (clownfish): quick darty movements
+  nemo: { accel: 0.008, drag: 0.94, jitter: 0.6, bob: 0.4, bobFreq: 3.0 },
+  // Nova (anglerfish): slow heavy glide
+  nova: { accel: 0.002, drag: 0.985, jitter: 0.15, bob: 0.3, bobFreq: 0.6 },
 };
 
 // ── Mia: jellyfish (larger, more detailed) ──
@@ -595,29 +604,63 @@ function update() {
     b.y += Math.cos(t*0.15+b.ph)*0.04;
   });
 
-  // Agent movement: working = at station, idle = waypoint roaming
+  // Agent movement with creature-specific physics
   for (const [id, stx] of [['mia',STX.mia],['nemo',STX.nemo],['nova',STX.nova]]) {
     const pos = agentPos[id];
+    const sw = SWIM[id];
     const working = agents[id].state === 'working';
+
     if (working) {
       pos.tx = stx;
       pos.ty = IDLE_Y;
     } else {
-      // Waypoint roaming: pick a new random target when close or timer expires
+      // Waypoint roaming
       pos.wpTimer--;
-      const dx = pos.tx - pos.x, dy = pos.ty - pos.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < 8 || pos.wpTimer <= 0) {
-        // New random waypoint within scene bounds
+      const ddx = pos.tx - pos.x, ddy = pos.ty - pos.y;
+      const dd = Math.sqrt(ddx*ddx + ddy*ddy);
+      if (dd < 10 || pos.wpTimer <= 0) {
         pos.tx = 40 + Math.random() * (W - 80);
         pos.ty = 30 + Math.random() * (FLOOR - 90);
-        pos.wpTimer = 100 + Math.floor(Math.random() * 150); // 2-5 seconds
+        pos.wpTimer = 120 + Math.floor(Math.random() * 200);
       }
     }
-    // Smooth interpolation — different speeds for working vs idle
-    const spd = working ? 0.03 : 0.015;
-    pos.x += (pos.tx - pos.x) * spd;
-    pos.y += (pos.ty - pos.y) * spd;
+
+    // Steering force toward target
+    const dx = pos.tx - pos.x, dy = pos.ty - pos.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    const ax = (dx / dist) * sw.accel;
+    const ay = (dy / dist) * sw.accel;
+
+    // Add jitter for organic feel
+    const jx = (Math.random() - 0.5) * sw.jitter * 0.1;
+    const jy = (Math.random() - 0.5) * sw.jitter * 0.1;
+
+    // Apply acceleration + drag
+    pos.vx = (pos.vx + ax + jx) * sw.drag;
+    pos.vy = (pos.vy + ay + jy) * sw.drag;
+
+    // Mia: pulsing propulsion (periodic thrust boost)
+    if (id === 'mia' && !working) {
+      const pulse = Math.max(0, Math.sin(t * 1.5));
+      pos.vx += (dx / dist) * pulse * 0.008;
+      pos.vy += (dy / dist) * pulse * 0.008;
+    }
+
+    // Nemo: occasional dart (sudden speed burst)
+    if (id === 'nemo' && !working && Math.random() < 0.003) {
+      pos.vx += (dx / dist) * 1.5;
+      pos.vy += (dy / dist) * 1.5;
+    }
+
+    pos.x += pos.vx;
+    pos.y += pos.vy;
+
+    // Natural bobbing
+    pos.y += Math.sin(t * sw.bobFreq + (id==='mia'?0:id==='nemo'?2:4)) * sw.bob * 0.3;
+
+    // Clamp
+    pos.x = Math.max(15, Math.min(W-15, pos.x));
+    pos.y = Math.max(15, Math.min(H-15, pos.y));
   }
 
   // State switching
