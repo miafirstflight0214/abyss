@@ -68,7 +68,7 @@
 </head>
 <body>
 <div id="title">Abyss</div>
-<div id="scene-wrap"><canvas id="scene" width="560" height="320"></canvas></div>
+<div id="scene-wrap"><canvas id="scene"></canvas></div>
 <div id="cards">
   <div class="card">
     <div class="card-head"><span class="card-dot active" style="background:#c4a0ee"></span><span class="card-name mia">Mia</span></div>
@@ -94,7 +94,29 @@
 <script>
 const C = document.getElementById('scene');
 const X = C.getContext('2d');
-const W = C.width, H = C.height;
+let W, H, FLOOR;
+
+function resizeCanvas() {
+  const wrap = document.getElementById('scene-wrap');
+  const dpr = 1; // keep pixel art crisp
+  const ww = wrap.clientWidth;
+  const wh = window.innerHeight;
+  // Desktop: 16:9 aspect based on width; Mobile: fill viewport height
+  const isMobile = window.innerWidth <= 600;
+  const cw = ww;
+  const ch = isMobile ? Math.floor(wh * 0.55) : Math.floor(ww * 9 / 16);
+  C.width = cw;
+  C.height = ch;
+  W = C.width;
+  H = C.height;
+  FLOOR = H - 50;
+  // Update derived constants
+  WORK_Y_VAL = FLOOR - 80;
+  IDLE_Y_VAL = FLOOR - 38;
+}
+let WORK_Y_VAL, IDLE_Y_VAL;
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 const P = 2; // pixel unit
 
 // ── Palette ──
@@ -117,8 +139,7 @@ const agents = {
 };
 
 // Workstation X positions
-const STX = { mia: 110, nemo: 280, nova: 440 };
-const FLOOR = H - 50;
+// STX is now dynamic — see getSTX()
 
 // ── Particles ──
 const parts = [];
@@ -354,13 +375,17 @@ function drawStation(sx, color, active, t) {
 }
 
 // ── Agent positions & velocity ──
-const WORK_Y = FLOOR - 80;
-const IDLE_Y = FLOOR - 38;
+// WORK_Y and IDLE_Y are now dynamic via WORK_Y_VAL / IDLE_Y_VAL
+
+// Workstation X positions — now functions of W
+function getSTX() {
+  return { mia: Math.floor(W*0.2), nemo: Math.floor(W*0.5), nova: Math.floor(W*0.8) };
+}
 
 const agentPos = {
-  mia:  { x: STX.mia, y: IDLE_Y, vx: 0, vy: 0, tx: STX.mia, ty: IDLE_Y, wpTimer: 0 },
-  nemo: { x: STX.nemo, y: IDLE_Y, vx: 0, vy: 0, tx: STX.nemo, ty: IDLE_Y, wpTimer: 0 },
-  nova: { x: STX.nova, y: IDLE_Y, vx: 0, vy: 0, tx: STX.nova, ty: IDLE_Y, wpTimer: 0 },
+  mia:  { x: 112, y: 230, vx: 0, vy: 0, tx: 112, ty: 230, wpTimer: 0 },
+  nemo: { x: 280, y: 230, vx: 0, vy: 0, tx: 280, ty: 230, wpTimer: 0 },
+  nova: { x: 448, y: 230, vx: 0, vy: 0, tx: 448, ty: 230, wpTimer: 0 },
 };
 
 // Swimming characteristics per creature
@@ -616,6 +641,7 @@ function update() {
   });
 
   // Agent movement with creature-specific physics
+  const STX = getSTX();
   for (const [id, stx] of [['mia',STX.mia],['nemo',STX.nemo],['nova',STX.nova]]) {
     const pos = agentPos[id];
     const sw = SWIM[id];
@@ -623,7 +649,7 @@ function update() {
 
     if (working) {
       pos.tx = stx;
-      pos.ty = IDLE_Y;
+      pos.ty = IDLE_Y_VAL;
     } else {
       // Waypoint roaming
       pos.wpTimer--;
@@ -715,9 +741,10 @@ function draw() {
   drawBioluminescence(t);
 
   // All 3 stations always visible
-  drawStation(STX.mia, PAL.mia, agents.mia.state==='working', t);
-  drawStation(STX.nemo, PAL.nemo, agents.nemo.state==='working', t);
-  drawStation(STX.nova, PAL.nova, agents.nova.state==='working', t);
+  const STX_D = getSTX();
+  drawStation(STX_D.mia, PAL.mia, agents.mia.state==='working', t);
+  drawStation(STX_D.nemo, PAL.nemo, agents.nemo.state==='working', t);
+  drawStation(STX_D.nova, PAL.nova, agents.nova.state==='working', t);
 
   // Agents
   const mPos = drawMia(t);
