@@ -53,6 +53,13 @@
   .card-task { font-size: 10px; color: #555568; margin-top: 2px; }
   #title { font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(80,140,200,0.2); margin-top: 20px; }
   #footer { font-size: 8px; letter-spacing: 0.2em; color: rgba(80,140,200,0.1); margin-bottom: 20px; }
+  .gpad {
+    background: rgba(80,140,200,0.15); border: 1px solid rgba(80,140,200,0.25);
+    color: rgba(200,220,240,0.6); font-size: 18px; border-radius: 8px;
+    width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: none;
+  }
+  .gpad:active { background: rgba(80,140,200,0.35); color: rgba(200,220,240,0.9); }
   @media (max-width: 600px) {
     body { justify-content: flex-start; padding: 0; }
     #title { margin-top: 8px; font-size: 8px; }
@@ -808,8 +815,48 @@ function toggleBGM() {
 const gameOverlay = document.createElement('div');
 gameOverlay.id = 'game-overlay';
 gameOverlay.style.cssText = 'position:fixed;inset:0;z-index:1000;display:none;background:#070a10;touch-action:none;';
-gameOverlay.innerHTML = '<canvas id="game-canvas" style="width:100%;height:100%;display:block;touch-action:none;"></canvas>';
+gameOverlay.innerHTML = `<canvas id="game-canvas" style="width:100%;height:100%;display:block;touch-action:none;"></canvas>
+<div id="dpad" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:1001;user-select:none;-webkit-user-select:none;touch-action:none;">
+  <div style="display:grid;grid-template-columns:56px 56px 56px;grid-template-rows:56px 56px 56px;gap:4px;">
+    <div></div>
+    <button class="gpad" data-dir="up" style="grid-column:2">▲</button>
+    <div></div>
+    <button class="gpad" data-dir="left">◀</button>
+    <div></div>
+    <button class="gpad" data-dir="right">▶</button>
+    <div></div>
+    <button class="gpad" data-dir="down">▼</button>
+    <div></div>
+  </div>
+</div>
+<div id="lr-pad" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:1001;user-select:none;-webkit-user-select:none;touch-action:none;">
+  <div style="display:flex;gap:20px;">
+    <button class="gpad gpad-lr" data-dir="left" style="width:72px;height:56px;">◀</button>
+    <button class="gpad gpad-lr" data-dir="right" style="width:72px;height:56px;">▶</button>
+  </div>
+</div>`;
 document.body.appendChild(gameOverlay);
+
+// Virtual d-pad event dispatch
+let virtualDir = null;
+let virtualLR = null;
+document.querySelectorAll('#dpad .gpad').forEach(btn => {
+  const handler = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    virtualDir = btn.dataset.dir;
+  };
+  btn.addEventListener('touchstart', handler, { passive: false });
+  btn.addEventListener('mousedown', handler);
+});
+document.querySelectorAll('#lr-pad .gpad').forEach(btn => {
+  const startH = (e) => { e.preventDefault(); e.stopPropagation(); virtualLR = btn.dataset.dir; };
+  const endH = (e) => { e.preventDefault(); virtualLR = null; };
+  btn.addEventListener('touchstart', startH, { passive: false });
+  btn.addEventListener('touchend', endH, { passive: false });
+  btn.addEventListener('mousedown', startH);
+  btn.addEventListener('mouseup', endH);
+  btn.addEventListener('mouseleave', endH);
+});
 
 let activeGame = null;
 const GC = () => document.getElementById('game-canvas');
@@ -821,6 +868,10 @@ function openGame(name) {
   gc.width = window.innerWidth;
   gc.height = window.innerHeight;
   activeGame = name;
+  // Show appropriate controls on mobile
+  const isMobile = window.innerWidth <= 600 || 'ontouchstart' in window;
+  document.getElementById('dpad').style.display = (isMobile && name === 'nemo') ? 'block' : 'none';
+  document.getElementById('lr-pad').style.display = (isMobile && name === 'nova') ? 'block' : 'none';
   if (name === 'mia') startFlappyJellyfish();
   else if (name === 'nemo') startSnake();
   else if (name === 'nova') startBreakout();
@@ -829,6 +880,8 @@ function openGame(name) {
 function closeGame() {
   activeGame = null;
   gameOverlay.style.display = 'none';
+  document.getElementById('dpad').style.display = 'none';
+  document.getElementById('lr-pad').style.display = 'none';
 }
 
 // ── Click/touch detection on canvas agents ──
@@ -1092,6 +1145,14 @@ function startSnake() {
 
     if (alive && moveTimer >= moveInterval) {
       moveTimer = 0;
+      // Check virtual d-pad
+      if (virtualDir) {
+        if (virtualDir === 'up' && dir.y === 0) nextDir = { x: 0, y: -1 };
+        if (virtualDir === 'down' && dir.y === 0) nextDir = { x: 0, y: 1 };
+        if (virtualDir === 'left' && dir.x === 0) nextDir = { x: -1, y: 0 };
+        if (virtualDir === 'right' && dir.x === 0) nextDir = { x: 1, y: 0 };
+        virtualDir = null;
+      }
       dir = { ...nextDir };
       const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
       // Wall collision
@@ -1220,8 +1281,8 @@ function startBreakout() {
     if (!activeGame) { cleanup(); return; }
 
     // Keyboard paddle
-    if (keysDown['ArrowLeft'] || keysDown['a']) px = Math.max(0, px - 6);
-    if (keysDown['ArrowRight'] || keysDown['d']) px = Math.min(gw - pw, px + 6);
+    if (keysDown['ArrowLeft'] || keysDown['a'] || virtualLR === 'left') px = Math.max(0, px - 6);
+    if (keysDown['ArrowRight'] || keysDown['d'] || virtualLR === 'right') px = Math.min(gw - pw, px + 6);
 
     // Background
     gx.fillStyle = '#040810';
