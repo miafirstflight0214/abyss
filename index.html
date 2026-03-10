@@ -91,6 +91,7 @@
   </div>
 </div>
 <div id="footer">THREE AGENTS · ONE ABYSS</div>
+<button id="bgm-btn" onclick="toggleBGM()" style="position:fixed;bottom:12px;right:12px;z-index:100;background:rgba(80,140,200,0.1);border:1px solid rgba(80,140,200,0.15);color:#7a7a88;font-family:'Courier New',monospace;font-size:10px;padding:6px 12px;border-radius:4px;cursor:pointer;backdrop-filter:blur(4px);">♪ OFF</button>
 
 <script>
 const C = document.getElementById('scene');
@@ -843,16 +844,17 @@ function startBGM() {
   scheduleLoop();
 }
 
+function toggleBGM() {
+  if (bgmPlaying) { stopBGM(); document.getElementById('bgm-btn').textContent = '♪ OFF'; }
+  else { startBGM(); document.getElementById('bgm-btn').textContent = '♪ ON'; }
+}
+
 function stopBGM() {
   bgmPlaying = false;
   if (audioCtx) { audioCtx.close(); audioCtx = null; }
 }
 
-// Click anywhere to start BGM
-document.addEventListener('click', function initAudio() {
-  startBGM();
-  document.removeEventListener('click', initAudio);
-}, { once: true });
+// No auto-start — user controls via button
 
 // ═══════════════════════════════════════════════
 // ███ MINI-GAMES ███
@@ -861,8 +863,8 @@ document.addEventListener('click', function initAudio() {
 // Game overlay
 const gameOverlay = document.createElement('div');
 gameOverlay.id = 'game-overlay';
-gameOverlay.style.cssText = 'position:fixed;inset:0;z-index:1000;display:none;background:#070a10;';
-gameOverlay.innerHTML = '<canvas id="game-canvas" style="width:100%;height:100%;display:block;image-rendering:pixelated;"></canvas>';
+gameOverlay.style.cssText = 'position:fixed;inset:0;z-index:1000;display:none;background:#070a10;touch-action:none;';
+gameOverlay.innerHTML = '<canvas id="game-canvas" style="width:100%;height:100%;display:block;image-rendering:pixelated;touch-action:none;"></canvas>';
 document.body.appendChild(gameOverlay);
 
 let activeGame = null;
@@ -886,39 +888,34 @@ function closeGame() {
 }
 
 // ── Click detection on canvas agents ──
-C.addEventListener('click', function(e) {
-  if (activeGame) return;
+function handleAgentTap(clientX, clientY) {
+  if (activeGame) return false;
   const rect = C.getBoundingClientRect();
   const scaleX = W / rect.width, scaleY = H / rect.height;
-  const cx = (e.clientX - rect.left) * scaleX;
-  const cy = (e.clientY - rect.top) * scaleY;
+  const cx = (clientX - rect.left) * scaleX;
+  const cy = (clientY - rect.top) * scaleY;
   
+  // Larger hit area on mobile
+  const hitR = window.innerWidth <= 600 ? 2500 : 1600;
   for (const id of ['mia','nemo','nova']) {
     const pos = agentPos[id];
     const dx = cx - pos.x, dy = cy - pos.y;
-    if (dx*dx + dy*dy < 900) { // 30px radius
+    if (dx*dx + dy*dy < hitR) {
       openGame(id);
-      return;
+      return true;
     }
   }
+  return false;
+}
+
+C.addEventListener('click', function(e) {
+  handleAgentTap(e.clientX, e.clientY);
 });
 
-// Touch support
-C.addEventListener('touchstart', function(e) {
-  if (activeGame) return;
-  const t = e.touches[0];
-  const rect = C.getBoundingClientRect();
-  const scaleX = W / rect.width, scaleY = H / rect.height;
-  const cx = (t.clientX - rect.left) * scaleX;
-  const cy = (t.clientY - rect.top) * scaleY;
-  for (const id of ['mia','nemo','nova']) {
-    const pos = agentPos[id];
-    const dx = cx - pos.x, dy = cy - pos.y;
-    if (dx*dx + dy*dy < 900) {
-      e.preventDefault();
-      openGame(id);
-      return;
-    }
+C.addEventListener('touchend', function(e) {
+  const t = e.changedTouches[0];
+  if (handleAgentTap(t.clientX, t.clientY)) {
+    e.preventDefault();
   }
 }, { passive: false });
 
@@ -1041,11 +1038,17 @@ function startJellyfishJump() {
   // Back button click
   const backHandler = (e) => {
     const rect = gc.getBoundingClientRect();
-    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
-    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
-    if (x < 80 && y < 40) { cleanup(); closeGame(); gameOverlay.removeEventListener('click', backHandler); }
+    const sx = gc.width / rect.width, sy = gc.height / rect.height;
+    const rawX = (e.clientX ?? e.changedTouches?.[0]?.clientX ?? e.touches?.[0]?.clientX);
+    const rawY = (e.clientY ?? e.changedTouches?.[0]?.clientY ?? e.touches?.[0]?.clientY);
+    if (rawX == null) return;
+    const x = (rawX - rect.left) * sx, y = (rawY - rect.top) * sy;
+    if (x < 80 && y < 40) { cleanup(); closeGame(); gameOverlay.removeEventListener('click', backHandler); gameOverlay.removeEventListener('touchend', backHandler); }
   };
-  setTimeout(() => gameOverlay.addEventListener('click', backHandler), 100);
+  setTimeout(() => {
+    gameOverlay.addEventListener('click', backHandler);
+    gameOverlay.addEventListener('touchend', backHandler, {passive:false});
+  }, 100);
   
   tick();
 }
@@ -1077,8 +1080,12 @@ function startBubbleCatch() {
   function hitTest(e) {
     e.preventDefault();
     const rect = gc.getBoundingClientRect();
-    const ex = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
-    const ey = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+    const sx = gc.width / rect.width, sy = gc.height / rect.height;
+    const rawX = (e.clientX ?? e.changedTouches?.[0]?.clientX ?? e.touches?.[0]?.clientX);
+    const rawY = (e.clientY ?? e.changedTouches?.[0]?.clientY ?? e.touches?.[0]?.clientY);
+    if (rawX == null) return;
+    const ex = (rawX - rect.left) * sx;
+    const ey = (rawY - rect.top) * sy;
     // Back button
     if (ex < 80 && ey < 40) { clearInterval(interval); closeGame(); return; }
     for (const b of bubbles) {
@@ -1193,14 +1200,23 @@ function startDeepHunter() {
   function moveLight(e) {
     e.preventDefault();
     const rect = gc.getBoundingClientRect();
-    lightX = (e.clientX || e.touches?.[0]?.clientX || lightX) - rect.left;
-    lightY = (e.clientY || e.touches?.[0]?.clientY || lightY) - rect.top;
+    const sx = gc.width / rect.width, sy = gc.height / rect.height;
+    const rawX = (e.clientX ?? e.changedTouches?.[0]?.clientX ?? e.touches?.[0]?.clientX);
+    const rawY = (e.clientY ?? e.changedTouches?.[0]?.clientY ?? e.touches?.[0]?.clientY);
+    if (rawX != null) {
+      lightX = (rawX - rect.left) * sx;
+      lightY = (rawY - rect.top) * sy;
+    }
   }
   
   function tapHandler(e) {
     const rect = gc.getBoundingClientRect();
-    const ex = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
-    const ey = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+    const sx = gc.width / rect.width;
+    const rawX = (e.clientX ?? e.changedTouches?.[0]?.clientX ?? e.touches?.[0]?.clientX);
+    const rawY = (e.clientY ?? e.changedTouches?.[0]?.clientY ?? e.touches?.[0]?.clientY);
+    if (rawX == null) return;
+    const ex = (rawX - rect.left) * sx;
+    const ey = (rawY - rect.top) * (gc.height / rect.height);
     if (ex < 80 && ey < 40) { cleanup(); closeGame(); return; }
   }
   
