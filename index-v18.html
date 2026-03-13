@@ -227,55 +227,14 @@ for (let i = 0; i < 20; i++) {
 
 // ── Speech ──
 const MSGS_WORK = {
-  mia:  ['Summarizing...','Coordinating.','Noted.','On it.','Checking logs.','Syncing agents.',
-         'Reviewing context.','Cross-referencing.','Compiling report.','Organizing threads.',
-         'Aligning priorities.','Dispatching tasks.','Reading memory files.','Updating digest.'],
-  nemo: ['Drafting reply...','Searching~','Looking up...','On it!','Checking...',
-         'Organizing notes~','Writing draft!','Browsing recipes...','Setting reminders.',
-         'Planning ahead~','Sorting inbox...','Making a list!','Scheduling...'],
-  nova: ['Deploying.','git push.','Debugging...','Refactoring.','Fixed.','Building...',
-         'Running tests.','Optimizing.','Code review.','Patching.','Profiling.',
-         'Analyzing logs.','Compiling.','Benchmarking.','Shipping.'],
+  mia:  ['Summarizing...','Coordinating.','Noted.','On it.','Checking logs.','Syncing agents.'],
+  nemo: ['Drafting reply...','Searching~','Looking up...','On it!','Checking...'],
+  nova: ['Deploying.','git push.','Debugging...','Refactoring.','Fixed.','Building...'],
 };
 const MSGS_IDLE = {
-  mia:  ['Stretching~','*floats gently*','Hmm...','Taking a break.','~♪',
-         '*drifts upward*','Observing the deep.','Peaceful here.','*pulses softly*',
-         'The current is nice.','Watching particles.','*meditating*'],
-  nemo: ['*yawn*','~♪','nice day~','*exploring*','Ooh, shiny!','...zzZ',
-         '*chasing bubbles*','Found a shell!','*wiggle wiggle*','So many colors~',
-         'What\'s over there?','*darting around*','Coral looks pretty!'],
-  nova: ['...','*lurking*','Scanning.','*glows*','Patrolling.',
-         'All clear.','*blinks lantern*','Mapping the seabed.','*silent watch*',
-         'Darkness is home.','Recalibrating.','*surveying*','Nothing escapes.'],
-};
-
-// ── Idle activity descriptions (for cards) ──
-const IDLE_ACTIVITIES = {
-  mia:  ['drifting','meditating','observing','resting'],
-  nemo: ['exploring','playing','snacking','napping'],
-  nova: ['patrolling','scanning','surveying','lurking'],
-};
-const WORK_ACTIVITIES = {
-  mia:  ['coordinating','summarizing','reviewing','syncing'],
-  nemo: ['drafting','searching','organizing','planning'],
-  nova: ['deploying','debugging','building','optimizing'],
-};
-
-// ── Points of Interest for idle roaming ──
-const POI = {
-  coralGarden: () => ({ x: W*0.15, y: FLOOR-60 }),
-  openWater:   () => ({ x: W*0.5,  y: FLOOR*0.3 }),
-  kelpForest:  () => ({ x: W*0.7,  y: FLOOR-50 }),
-  deepCorner:  () => ({ x: W*0.9,  y: FLOOR*0.2 }),
-  entrance:    () => ({ x: W*0.35, y: FLOOR*0.5 }),
-  socialSpot:  () => ({ x: W*0.5,  y: FLOOR-40 }),
-};
-const POI_KEYS = Object.keys(POI);
-// Each agent has preferred hangout spots
-const POI_PREFS = {
-  mia:  ['openWater','entrance','socialSpot','deepCorner'],
-  nemo: ['coralGarden','kelpForest','socialSpot','entrance'],
-  nova: ['deepCorner','kelpForest','openWater','coralGarden'],
+  mia:  ['Stretching~','*floats*','Hmm...','Taking a break.','~♪'],
+  nemo: ['*yawn*','~♪','nice day~','*exploring*','Ooh, shiny!','...zzZ'],
+  nova: ['...','*lurking*','Scanning.','*glows*','Patrolling.'],
 };
 const bubs = { mia:null, nemo:null, nova:null };
 let bubT = 0;
@@ -765,21 +724,14 @@ function update() {
       pos.tx = stx;
       pos.ty = IDLE_Y_VAL;
     } else {
-      // POI-based roaming — go to preferred hangout spots
+      // Waypoint roaming
       pos.wpTimer--;
       const ddx = pos.tx - pos.x, ddy = pos.ty - pos.y;
       const dd = Math.sqrt(ddx*ddx + ddy*ddy);
       if (dd < 10 || pos.wpTimer <= 0) {
-        // Pick a preferred POI with some randomness
-        const prefs = POI_PREFS[id];
-        const pick = Math.random() < 0.7
-          ? prefs[Math.floor(Math.random() * prefs.length)]
-          : POI_KEYS[Math.floor(Math.random() * POI_KEYS.length)];
-        const pt = POI[pick]();
-        // Add scatter so agents don't stack exactly
-        pos.tx = pt.x + (Math.random()-0.5) * 40;
-        pos.ty = pt.y + (Math.random()-0.5) * 20;
-        pos.wpTimer = 180 + Math.floor(Math.random() * 300);
+        pos.tx = 40 + Math.random() * (W - 80);
+        pos.ty = 30 + Math.random() * (FLOOR - 90);
+        pos.wpTimer = 120 + Math.floor(Math.random() * 200);
       }
     }
 
@@ -829,12 +781,9 @@ function update() {
       agents[id].state = wasWorking ? 'idle' : 'working';
       const isWork = agents[id].state === 'working';
       agents[id].timer = Math.floor((isWork ? 400+Math.random()*600 : 250+Math.random()*350));
-      // Update activity description
-      const acts = isWork ? WORK_ACTIVITIES[id] : IDLE_ACTIVITIES[id];
-      currentActivity[id] = acts[Math.floor(Math.random()*acts.length)];
       // Show a state-change bubble
       const msgs = isWork ? MSGS_WORK[id] : MSGS_IDLE[id];
-      bubs[id] = { text: msgs[Math.floor(Math.random()*msgs.length)], life: 140 };
+      bubs[id] = { text: msgs[Math.floor(Math.random()*msgs.length)], life: 120 };
     }
   }
 
@@ -890,16 +839,11 @@ function draw() {
 // Update HTML cards to reflect state
 const cardEls = document.querySelectorAll('.card');
 const cardMap = { 0:'mia', 1:'nemo', 2:'nova' };
-// Track current activity per agent for card display
-const currentActivity = { mia:'coordinating', nemo:'exploring', nova:'scanning' };
 function updateCards() {
   for (let i = 0; i < 3; i++) {
     const id = cardMap[i];
-    const isWork = agents[id].state === 'working';
     const st = cardEls[i].querySelector('.card-status');
-    if (st) st.textContent = isWork ? '> working' : '> idle';
-    const task = cardEls[i].querySelector('.card-task');
-    if (task) task.textContent = '_ ' + currentActivity[id];
+    if (st) st.textContent = agents[id].state === 'working' ? '> working' : '> idle';
   }
 }
 
